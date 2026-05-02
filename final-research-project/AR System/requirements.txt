@@ -1,0 +1,7 @@
+flask
+pandas
+requests
+watchdog
+joblib
+scikit-learn
+paho-mqtt

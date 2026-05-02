@@ -1,0 +1,21 @@
+ALERT PRIORITIZATION MODEL - TRAINING SUMMARY
+======================================================================
+
+Model Type: Random Forest Classifier
+Training Samples: 80,000
+Testing Samples: 20,000
+Number of Features: 23
+Overall Accuracy (5-fold CV mean): 97.42%
+Note: Cross-validation used to estimate generalization performance; no fold achieved 100% accuracy.
+
+Top 10 Important Features:
+  criticality_tier               : 0.2579
+  ward_encoded                   : 0.0991
+  is_critical_device             : 0.0875
+  device_type_encoded            : 0.0826
+  life_support_int               : 0.0674
+  sensor_type_encoded            : 0.0658
+  is_icu                         : 0.0552
+  attack_severity                : 0.0545
+  time_anomaly_score             : 0.0427
+  protocol_encoded               : 0.0421

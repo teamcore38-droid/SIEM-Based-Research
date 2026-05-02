@@ -1,0 +1,15 @@
+<!-- 
+    ARS CUSTOM DECODERS
+    Paste this into your Wazuh Manager's /var/ossec/etc/decoders/local_decoder.xml
+    or via the Wazuh Dashboard: Management > Decoders > Custom decoders
+-->
+
+<decoder name="ars-core">
+    <prematch>^\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d,\d\d\d - INFO - </prematch>
+</decoder>
+
+<decoder name="ars-fields">
+    <parent>ars-core</parent>
+    <regex>\[(\.*)\] (\.*)</regex>
+    <order>ars_tag, ars_message</order>
+</decoder>

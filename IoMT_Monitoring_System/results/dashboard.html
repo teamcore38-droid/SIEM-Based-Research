@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>IoMT Monitoring System — MMM Ukasha IT22904232</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:        #040d1a;
+    --panel:     #071628;
+    --border:    #0d2a4a;
+    --accent:    #00d4ff;
+    --critical:  #ff2d55;
+    --high:      #ff6b00;
+    --medium:    #ffd60a;
+    --low:       #34c759;
+    --text:      #cde8ff;
+    --dim:       #4a7a9b;
+    --glow:      0 0 18px rgba(0,212,255,0.25);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* animated grid background */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(0,212,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none; z-index:0;
+  }
+
+  /* ── TOP HEADER ── */
+  header {
+    position:relative; z-index:10;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #071e3d 0%, var(--bg) 100%);
+    padding: 18px 32px;
+    display: flex; align-items:center; justify-content:space-between;
+  }
+  .logo-block { display:flex; align-items:center; gap:14px; }
+  .logo-icon {
+    width:44px; height:44px; border-radius:10px;
+    background: linear-gradient(135deg, #003566, #00d4ff);
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; box-shadow: var(--glow);
+  }
+  .logo-text h1 { font-size:18px; font-weight:700; color:#fff; letter-spacing:1px; }
+  .logo-text p  { font-size:11px; color:var(--dim); font-family:'Share Tech Mono'; }
+  .header-right { display:flex; align-items:center; gap:20px; }
+  .live-badge {
+    display:flex; align-items:center; gap:6px;
+    background: rgba(52,199,89,.12); border:1px solid rgba(52,199,89,.3);
+    padding:5px 12px; border-radius:20px; font-size:12px; color:var(--low);
+    font-family:'Share Tech Mono';
+  }
+  .live-dot {
+    width:7px; height:7px; border-radius:50%; background:var(--low);
+    animation: pulse-dot 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(0.7)} }
+
+  .student-tag {
+    font-family:'Share Tech Mono'; font-size:11px; color:var(--dim);
+    background: var(--panel); border:1px solid var(--border);
+    padding:5px 12px; border-radius:6px;
+  }
+
+  /* ── NAV TABS ── */
+  nav {
+    position:relative; z-index:10;
+    display:flex; gap:4px; padding:14px 32px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .tab {
+    padding:9px 22px; border-radius:8px 8px 0 0; cursor:pointer;
+    font-size:13px; font-weight:600; letter-spacing:.5px;
+    border:1px solid transparent; border-bottom:none;
+    color:var(--dim); transition:all .2s;
+    background:transparent;
+  }
+  .tab:hover { color:var(--accent); }
+  .tab.active {
+    background:var(--panel); color:var(--accent);
+    border-color:var(--border);
+    box-shadow: 0 -2px 0 var(--accent) inset;
+  }
+
+  /* ── MAIN CONTENT ── */
+  main { position:relative; z-index:5; padding:28px 32px; }
+  .page { display:none; animation: fadein .3s ease; }
+  .page.active { display:block; }
+  @keyframes fadein { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-size:11px; font-family:'Share Tech Mono'; letter-spacing:3px;
+    color:var(--accent); text-transform:uppercase; margin-bottom:20px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .section-title::after {
+    content:''; flex:1; height:1px;
+    background:linear-gradient(90deg,var(--border),transparent);
+  }
+
+  /* ── KPI CARDS ── */
+  .kpi-grid {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+    margin-bottom:28px;
+  }
+  .kpi {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:12px; padding:20px;
+    position:relative; overflow:hidden;
+    transition:transform .2s, box-shadow .2s;
+  }
+  .kpi:hover { transform:translateY(-3px); box-shadow:var(--glow); }
+  .kpi::before {
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    border-radius:12px 12px 0 0;
+  }
+  .kpi.blue::before  { background:var(--accent); }
+  .kpi.red::before   { background:var(--critical); }
+  .kpi.green::before { background:var(--low); }
+  .kpi.orange::before{ background:var(--high); }
+
+  .kpi-label { font-size:11px; color:var(--dim); letter-spacing:1px; text-transform:uppercase; margin-bottom:8px; }
+  .kpi-value { font-size:32px; font-weight:900; line-height:1; }
+  .kpi-sub   { font-size:12px; color:var(--dim); margin-top:5px; font-family:'Share Tech Mono'; }
+  .kpi.blue  .kpi-value { color:var(--accent); }
+  .kpi.red   .kpi-value { color:var(--critical); }
+  .kpi.green .kpi-value { color:var(--low); }
+  .kpi.orange .kpi-value { color:var(--high); }
+
+  /* ── TWO COLUMN LAYOUT ── */
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:24px; }
+  .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:24px; }
+
+  /* ── PANEL ── */
+  .panel {
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:12px; padding:22px;
+  }
+  .panel-title {
+    font-size:12px; font-weight:700; letter-spacing:1px;
+    text-transform:uppercase; color:var(--accent);
+    margin-bottom:18px; padding-bottom:10px;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:8px;
+  }
+
+  /* ── PRIORITY BAR ── */
+  .priority-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .pri-label {
+    width:72px; font-size:12px; font-weight:700; font-family:'Share Tech Mono';
+  }
+  .pri-bar-track {
+    flex:1; height:10px; background:rgba(255,255,255,.05);
+    border-radius:6px; overflow:hidden;
+  }
+  .pri-bar { height:100%; border-radius:6px; transition:width 1.2s cubic-bezier(.4,0,.2,1); }
+  .pri-count { width:40px; text-align:right; font-size:13px; font-weight:700; font-family:'Share Tech Mono'; }
+  .pri-pct { width:44px; text-align:right; font-size:11px; color:var(--dim); font-family:'Share Tech Mono'; }
+
+  .label-critical { color:var(--critical); }
+  .label-high     { color:var(--high); }
+  .label-medium   { color:var(--medium); }
+  .label-low      { color:var(--low); }
+  .bar-critical   { background:var(--critical); box-shadow:0 0 8px rgba(255,45,85,.5); }
+  .bar-high       { background:var(--high);     box-shadow:0 0 8px rgba(255,107,0,.5); }
+  .bar-medium     { background:var(--medium);   box-shadow:0 0 8px rgba(255,214,10,.5); }
+  .bar-low        { background:var(--low);      box-shadow:0 0 8px rgba(52,199,89,.5); }
+
+  /* ── FEATURE IMPORTANCE ── */
+  .feat-row { display:flex; align-items:center; gap:10px; margin-bottom:9px; }
+  .feat-name { width:170px; font-size:12px; font-family:'Share Tech Mono'; color:var(--text); }
+  .feat-track { flex:1; height:8px; background:rgba(255,255,255,.05); border-radius:4px; overflow:hidden; }
+  .feat-fill  { height:100%; border-radius:4px; background:linear-gradient(90deg,#0051a8,var(--accent)); }
+  .feat-val   { width:46px; text-align:right; font-size:11px; font-family:'Share Tech Mono'; color:var(--accent); }
+
+  /* ── INCIDENT TABLE ── */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead tr { border-bottom:2px solid var(--border); }
+  th {
+    text-align:left; padding:10px 12px;
+    font-size:11px; letter-spacing:1px; text-transform:uppercase;
+    color:var(--dim); font-family:'Share Tech Mono'; white-space:nowrap;
+  }
+  td { padding:10px 12px; border-bottom:1px solid rgba(13,42,74,.5); vertical-align:middle; }
+  tr:hover td { background:rgba(0,212,255,.03); }
+
+  .badge {
+    display:inline-flex; align-items:center; gap:5px;
+    padding:3px 10px; border-radius:20px;
+    font-size:11px; font-weight:700; font-family:'Share Tech Mono';
+    letter-spacing:.5px; white-space:nowrap;
+  }
+  .badge-critical { background:rgba(255,45,85,.15);  color:var(--critical); border:1px solid rgba(255,45,85,.3); }
+  .badge-high     { background:rgba(255,107,0,.15);  color:var(--high);     border:1px solid rgba(255,107,0,.3); }
+  .badge-medium   { background:rgba(255,214,10,.12); color:var(--medium);   border:1px solid rgba(255,214,10,.3); }
+  .badge-low      { background:rgba(52,199,89,.12);  color:var(--low);      border:1px solid rgba(52,199,89,.3); }
+
+  .ls-yes { color:var(--critical); font-weight:700; font-size:12px; }
+  .ls-no  { color:var(--dim); font-size:12px; }
+
+  .count-pill {
+    background:rgba(0,212,255,.1); color:var(--accent);
+    border-radius:20px; padding:2px 9px;
+    font-size:12px; font-family:'Share Tech Mono';
+  }
+
+  /* ── DEMO PREDICTOR ── */
+  .predictor-grid { display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+  .form-group { margin-bottom:16px; }
+  .form-group label {
+    display:block; font-size:11px; letter-spacing:1px;
+    text-transform:uppercase; color:var(--dim); margin-bottom:6px;
+    font-family:'Share Tech Mono';
+  }
+  .form-group select, .form-group input {
+    width:100%; padding:10px 14px;
+    background:rgba(0,0,0,.3); border:1px solid var(--border);
+    border-radius:8px; color:var(--text); font-size:13px;
+    font-family:'Exo 2', sans-serif; outline:none;
+    transition:border-color .2s;
+  }
+  .form-group select:focus, .form-group input:focus {
+    border-color:var(--accent); box-shadow:0 0 0 2px rgba(0,212,255,.1);
+  }
+  .form-group select option { background:#071628; }
+
+  .btn-predict {
+    width:100%; padding:14px; border:none; border-radius:10px; cursor:pointer;
+    background:linear-gradient(135deg,#005fa3,#00d4ff);
+    color:#fff; font-size:15px; font-weight:700; font-family:'Exo 2';
+    letter-spacing:1px; text-transform:uppercase;
+    transition:all .2s; box-shadow:0 4px 20px rgba(0,212,255,.2);
+    margin-top:8px;
+  }
+  .btn-predict:hover { transform:translateY(-2px); box-shadow:0 6px 28px rgba(0,212,255,.4); }
+
+  /* result card */
+  .result-card {
+    background:rgba(0,0,0,.3); border:2px solid var(--border);
+    border-radius:14px; padding:28px; text-align:center;
+    min-height:320px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:16px;
+    transition:border-color .4s;
+  }
+  .result-card.show-critical { border-color:var(--critical); box-shadow:0 0 30px rgba(255,45,85,.15); }
+  .result-card.show-high     { border-color:var(--high);     box-shadow:0 0 30px rgba(255,107,0,.15); }
+  .result-card.show-medium   { border-color:var(--medium);   box-shadow:0 0 30px rgba(255,214,10,.1); }
+  .result-card.show-low      { border-color:var(--low);      box-shadow:0 0 30px rgba(52,199,89,.1); }
+
+  .result-icon { font-size:52px; }
+  .result-priority {
+    font-size:36px; font-weight:900; letter-spacing:3px;
+    font-family:'Share Tech Mono';
+  }
+  .result-confidence { font-size:13px; color:var(--dim); font-family:'Share Tech Mono'; }
+  .conf-bars { width:100%; }
+  .conf-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+  .conf-lbl { width:72px; font-size:11px; font-family:'Share Tech Mono'; text-align:left; }
+  .conf-track { flex:1; height:7px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; }
+  .conf-fill { height:100%; border-radius:4px; transition:width .8s ease; }
+  .conf-num { width:42px; font-size:11px; font-family:'Share Tech Mono'; text-align:right; }
+
+  .result-reason {
+    background:rgba(0,212,255,.05); border:1px solid rgba(0,212,255,.15);
+    border-radius:8px; padding:12px 16px; font-size:12px;
+    color:var(--text); line-height:1.6; text-align:left; width:100%;
+  }
+
+  /* ── ACCURACY RING ── */
+  .accuracy-wrap { display:flex; align-items:center; justify-content:center; gap:40px; }
+  .ring-container { position:relative; width:160px; height:160px; }
+  .ring-container svg { transform:rotate(-90deg); }
+  .ring-bg  { fill:none; stroke:rgba(0,212,255,.08); stroke-width:14; }
+  .ring-val { fill:none; stroke:var(--accent); stroke-width:14; stroke-linecap:round;
+              stroke-dasharray:440; stroke-dashoffset:440;
+              transition:stroke-dashoffset 1.8s cubic-bezier(.4,0,.2,1);
+              filter:drop-shadow(0 0 6px rgba(0,212,255,.6)); }
+  .ring-text {
+    position:absolute; inset:0; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+  }
+  .ring-pct  { font-size:26px; font-weight:900; color:#fff; font-family:'Share Tech Mono'; }
+  .ring-sub  { font-size:11px; color:var(--dim); letter-spacing:1px; }
+  .metrics-list { flex:1; }
+  .metric-item { display:flex; justify-content:space-between; align-items:center;
+    padding:8px 0; border-bottom:1px solid var(--border); }
+  .metric-item:last-child { border:none; }
+  .metric-name { font-size:13px; color:var(--text); }
+  .metric-val  { font-size:13px; font-weight:700; font-family:'Share Tech Mono'; color:var(--accent); }
+
+  /* ── WARD SUMMARY ── */
+  .ward-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+  .ward-card {
+    background:rgba(0,0,0,.25); border:1px solid var(--border);
+    border-radius:10px; padding:16px; text-align:center;
+    transition:all .2s;
+  }
+  .ward-card:hover { border-color:var(--accent); transform:translateY(-2px); }
+  .ward-icon { font-size:26px; margin-bottom:8px; }
+  .ward-name { font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; }
+  .ward-ip   { font-size:10px; font-family:'Share Tech Mono'; color:var(--dim); margin-bottom:10px; }
+  .ward-ls   { font-size:11px; font-weight:700; }
+  .ward-tier { font-size:11px; color:var(--dim); margin-top:4px; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  /* ── FOOTER ── */
+  footer {
+    position:relative; z-index:10; text-align:center;
+    padding:16px; border-top:1px solid var(--border);
+    font-size:11px; color:var(--dim); font-family:'Share Tech Mono';
+    margin-top:10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-block">
+    <div class="logo-icon">🏥</div>
+    <div class="logo-text">
+      <h1>IoMT MONITORING SYSTEM</h1>
+      <p>SIEM-BASED CYBERSECURITY FRAMEWORK — PROJECT 25-26J-70</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>MODEL ACTIVE</div>
+    <div class="student-tag">MMM UKASHA · IT22904232</div>
+  </div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <button class="tab active" onclick="showPage('overview')">📊 Overview</button>
+  <button class="tab" onclick="showPage('prioritization')">🔴 Alert Prioritization</button>
+  <button class="tab" onclick="showPage('grouping')">📦 Alert Grouping</button>
+  <button class="tab" onclick="showPage('predictor')">🎯 Live Predictor</button>
+  <button class="tab" onclick="showPage('devices')">🔌 Devices</button>
+</nav>
+
+<main>
+
+<!-- ════════════════════════════════ PAGE 1: OVERVIEW ════════════════════════════════ -->
+<div class="page active" id="page-overview">
+
+  <div class="section-title">System Overview</div>
+
+  <div class="kpi-grid">
+    <div class="kpi blue">
+      <div class="kpi-label">Total Sensor Logs</div>
+      <div class="kpi-value">2,400</div>
+      <div class="kpi-sub">4 sensors merged</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Model Accuracy</div>
+      <div class="kpi-value">100%</div>
+      <div class="kpi-sub">Random Forest · 480 test rows</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Alert Reduction</div>
+      <div class="kpi-value">94.8%</div>
+      <div class="kpi-sub">630 alerts → 33 incidents</div>
+    </div>
+    <div class="kpi orange">
+      <div class="kpi-label">Attack Events</div>
+      <div class="kpi-value">630</div>
+      <div class="kpi-sub">8 attack types detected</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+
+    <div class="panel">
+      <div class="panel-title">⚡ Priority Label Distribution</div>
+      <div class="priority-row">
+        <span class="pri-label label-critical">CRITICAL</span>
+        <div class="pri-bar-track"><div class="pri-bar bar-critical" style="width:0%" data-w="8.5%"></div></div>
+        <span class="pri-count label-critical">205</span>
+        <span class="pri-pct">8.5%</span>
+      </div>
+      <div class="priority-row">
+        <span class="pri-label label-high">HIGH</span>
+        <div class="pri-bar-track"><div class="pri-bar bar-high" style="width:0%" data-w="10.6%"></div></div>
+        <span class="pri-count label-high">255</span>
+        <span class="pri-pct">10.6%</span>
+      </div>
+      <div class="priority-row">
+        <span class="pri-label label-medium">MEDIUM</span>
+        <div class="pri-bar-track"><div class="pri-bar bar-medium" style="width:0%" data-w="5.0%"></div></div>
+        <span class="pri-count label-medium">120</span>
+        <span class="pri-pct">5.0%</span>
+      </div>
+      <div class="priority-row">
+        <span class="pri-label label-low">LOW</span>
+        <div class="pri-bar-track"><div class="pri-bar bar-low" style="width:0%" data-w="75.8%"></div></div>
+        <span class="pri-count label-low">1820</span>
+        <span class="pri-pct">75.8%</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">📡 Sensor Contribution</div>
+      <div class="priority-row">
+        <span class="pri-label" style="color:#00d4ff">Pulse (ICU)</span>
+        <div class="pri-bar-track"><div class="pri-bar" style="width:0%;background:#00d4ff" data-w="37.5%"></div></div>
+        <span class="pri-count" style="color:#00d4ff">900</span>
+        <span class="pri-pct">37.5%</span>
+      </div>
+      <div class="priority-row">
+        <span class="pri-label" style="color:#bf5af2">ECG</span>
+        <div class="pri-bar-track"><div class="pri-bar" style="width:0%;background:#bf5af2" data-w="37.5%"></div></div>
+        <span class="pri-count" style="color:#bf5af2">900</span>
+        <span class="pri-pct">37.5%</span>
+      </div>
+      <div class="priority-row">
+        <span class="pri-label" style="color:#ff6b00">Temp</span>
+        <div class="pri-bar-track"><div class="pri-bar" style="width:0%;background:#ff6b00" data-w="14.6%"></div></div>
+        <span class="pri-count" style="color:#ff6b00">350</span>
+        <span class="pri-pct">14.6%</span>
+      </div>
+      <div class="priority-row">
+        <span class="pri-label" style="color:#34c759">Motion</span>
+        <div class="pri-bar-track"><div class="pri-bar" style="width:0%;background:#34c759" data-w="10.4%"></div></div>
+        <span class="pri-count" style="color:#34c759">250</span>
+        <span class="pri-pct">10.4%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">🔬 Attack Type Distribution</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+      <div style="text-align:center;padding:14px;background:rgba(255,45,85,.08);border:1px solid rgba(255,45,85,.2);border-radius:10px">
+        <div style="font-size:22px;margin-bottom:4px">💀</div>
+        <div style="font-size:13px;font-weight:700;color:var(--critical)">DDoS</div>
+        <div style="font-size:22px;font-weight:900;color:#fff">110</div>
+      </div>
+      <div style="text-align:center;padding:14px;background:rgba(255,107,0,.08);border:1px solid rgba(255,107,0,.2);border-radius:10px">
+        <div style="font-size:22px;margin-bottom:4px">🕵️</div>
+        <div style="font-size:13px;font-weight:700;color:var(--high)">Flooding</div>
+        <div style="font-size:22px;font-weight:900;color:#fff">100</div>
+      </div>
+      <div style="text-align:center;padding:14px;background:rgba(255,214,10,.08);border:1px solid rgba(255,214,10,.2);border-radius:10px">
+        <div style="font-size:22px;margin-bottom:4px">🎭</div>
+        <div style="font-size:13px;font-weight:700;color:var(--medium)">ID Spoof</div>
+        <div style="font-size:22px;font-weight:900;color:#fff">70</div>
+      </div>
+      <div style="text-align:center;padding:14px;background:rgba(52,199,89,.08);border:1px solid rgba(52,199,89,.2);border-radius:10px">
+        <div style="font-size:22px;margin-bottom:4px">⚡</div>
+        <div style="font-size:13px;font-weight:700;color:var(--low)">Sensor Spoof</div>
+        <div style="font-size:22px;font-weight:900;color:#fff">70</div>
+      </div>
+      <div style="text-align:center;padding:14px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:10px">
+        <div style="font-size:22px;margin-bottom:4px">🔌</div>
+        <div style="font-size:13px;font-weight:700;color:var(--accent)">Port Manip</div>
+        <div style="font-size:22px;font-weight:900;color:#fff">70</div>
+      </div>
+      <div style="text-align:center;padding:14px;background:rgba(191,90,242,.08);border:1px solid rgba(191,90,242,.2);border-radius:10px">
+        <div style="font-size:22px;margin-bottom:4px">🌐</div>
+        <div style="font-size:13px;font-weight:700;color:#bf5af2">IP Spoofing</div>
+        <div style="font-size:22px;font-weight:900;color:#fff">70</div>
+      </div>
+      <div style="text-align:center;padding:14px;background:rgba(255,45,85,.08);border:1px solid rgba(255,45,85,.2);border-radius:10px">
+        <div style="font-size:22px;margin-bottom:4px">🔧</div>
+        <div style="font-size:13px;font-weight:700;color:var(--critical)">Data Tamper</div>
+        <div style="font-size:22px;font-weight:900;color:#fff">70</div>
+      </div>
+      <div style="text-align:center;padding:14px;background:rgba(255,107,0,.08);border:1px solid rgba(255,107,0,.2);border-radius:10px">
+        <div style="font-size:22px;margin-bottom:4px">📡</div>
+        <div style="font-size:13px;font-weight:700;color:var(--high)">Proto Anomaly</div>
+        <div style="font-size:22px;font-weight:900;color:#fff">70</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ PAGE 2: PRIORITIZATION ════════════════════════════════ -->
+<div class="page" id="page-prioritization">
+  <div class="section-title">Novelty 1 — Alert Prioritization Model</div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">🎯 Model Accuracy</div>
+      <div class="accuracy-wrap">
+        <div class="ring-container">
+          <svg width="160" height="160" viewBox="0 0 160 160">
+            <circle class="ring-bg" cx="80" cy="80" r="70"/>
+            <circle class="ring-val" id="ring" cx="80" cy="80" r="70"/>
+          </svg>
+          <div class="ring-text">
+            <div class="ring-pct">100%</div>
+            <div class="ring-sub">ACCURACY</div>
+          </div>
+        </div>
+        <div class="metrics-list">
+          <div class="metric-item"><span class="metric-name">Algorithm</span><span class="metric-val">Random Forest</span></div>
+          <div class="metric-item"><span class="metric-name">Training Rows</span><span class="metric-val">1,920</span></div>
+          <div class="metric-item"><span class="metric-name">Test Rows</span><span class="metric-val">480</span></div>
+          <div class="metric-item"><span class="metric-name">Features</span><span class="metric-val">13</span></div>
+          <div class="metric-item"><span class="metric-name">Class Weight</span><span class="metric-val">Balanced</span></div>
+          <div class="metric-item"><span class="metric-name">Trees</span><span class="metric-val">100</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">📋 Classification Report</div>
+      <table>
+        <thead><tr><th>Priority</th><th>Precision</th><th>Recall</th><th>F1-Score</th><th>Support</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge badge-critical">● CRITICAL</span></td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="font-family:'Share Tech Mono'">41</td></tr>
+          <tr><td><span class="badge badge-high">● HIGH</span></td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="font-family:'Share Tech Mono'">51</td></tr>
+          <tr><td><span class="badge badge-medium">● MEDIUM</span></td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="font-family:'Share Tech Mono'">24</td></tr>
+          <tr><td><span class="badge badge-low">● LOW</span></td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="color:var(--low);font-family:'Share Tech Mono'">1.0000</td><td style="font-family:'Share Tech Mono'">364</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">📊 Feature Importance — What Drives Priority?</div>
+    <div id="feat-list"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ PAGE 3: GROUPING ════════════════════════════════ -->
+<div class="page" id="page-grouping">
+  <div class="section-title">Novelty 2 — Alert Grouping</div>
+
+  <div class="kpi-grid">
+    <div class="kpi blue">
+      <div class="kpi-label">Total Attack Alerts</div>
+      <div class="kpi-value">630</div>
+      <div class="kpi-sub">Before grouping</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Incident Groups</div>
+      <div class="kpi-value">33</div>
+      <div class="kpi-sub">After DBSCAN clustering</div>
+    </div>
+    <div class="kpi red">
+      <div class="kpi-label">Alert Reduction</div>
+      <div class="kpi-value">94.8%</div>
+      <div class="kpi-sub">630 → 33 incidents</div>
+    </div>
+    <div class="kpi orange">
+      <div class="kpi-label">CRITICAL Incidents</div>
+      <div class="kpi-value">10</div>
+      <div class="kpi-sub">ICU life-support involved</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">📋 Grouped Incident Table</div>
+    <div class="table-wrap">
+      <table id="incident-table">
+        <thead>
+          <tr>
+            <th>Incident ID</th>
+            <th>Alert Count</th>
+            <th>Attack Type</th>
+            <th>Ward</th>
+            <th>Life Support</th>
+            <th>Priority</th>
+          </tr>
+        </thead>
+        <tbody id="incident-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ PAGE 4: PREDICTOR ════════════════════════════════ -->
+<div class="page" id="page-predictor">
+  <div class="section-title">Live Alert Priority Predictor</div>
+
+  <div class="predictor-grid">
+    <div class="panel">
+      <div class="panel-title">⚙️ Input Device Parameters</div>
+      <div class="form-group">
+        <label>Device Type</label>
+        <select id="inp-device">
+          <option value="ESP32_Pulse_Oximeter">ESP32 Pulse Oximeter</option>
+          <option value="ESP32_ECG_Monitor">ESP32 ECG Monitor</option>
+          <option value="ESP32_Temperature_Monitor">ESP32 Temperature Monitor</option>
+          <option value="ESP32_Fall_Detection_Motion">ESP32 Fall Detection / Motion</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Ward</label>
+        <select id="inp-ward">
+          <option value="ICU">ICU (Intensive Care Unit)</option>
+          <option value="Ward_02">Ward 02 — ECG</option>
+          <option value="General_Ward">General Ward</option>
+          <option value="Ward_01">Ward 01 — Motion</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Life Support</label>
+        <select id="inp-ls">
+          <option value="1">YES — Life Support Device ⚠</option>
+          <option value="0">NO — Non-Life Support</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Criticality Tier (1–10)</label>
+        <input type="number" id="inp-tier" value="9" min="1" max="10"/>
+      </div>
+      <div class="form-group">
+        <label>Attack Type</label>
+        <select id="inp-attack">
+          <option value="ddos">DDoS</option>
+          <option value="sensor_spoofing">Sensor Spoofing</option>
+          <option value="device_identity_spoofing">Device Identity Spoofing</option>
+          <option value="data_tampering">Data Tampering</option>
+          <option value="mqtt_port_manipulation">MQTT Port Manipulation</option>
+          <option value="protocol_anomaly">Protocol Anomaly</option>
+          <option value="ip_spoofing">IP Spoofing</option>
+          <option value="flooding">Flooding</option>
+          <option value="normal">Normal (No Attack)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Destination Port</label>
+        <input type="number" id="inp-port" value="1883"/>
+      </div>
+      <button class="btn-predict" onclick="predict()">⚡ PREDICT PRIORITY</button>
+    </div>
+
+    <div class="result-card" id="result-card">
+      <div style="color:var(--dim);font-size:13px;font-family:'Share Tech Mono'">
+        ← Configure parameters and click<br>PREDICT PRIORITY
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ PAGE 5: DEVICES ════════════════════════════════ -->
+<div class="page" id="page-devices">
+  <div class="section-title">IoMT Device Summary</div>
+
+  <div class="ward-grid">
+    <div class="ward-card">
+      <div class="ward-icon">❤️</div>
+      <div class="ward-name">ESP32 Pulse Oximeter</div>
+      <div class="ward-ip">10.86.251.45</div>
+      <div class="ward-ls" style="color:var(--critical)">⚠ LIFE SUPPORT: YES</div>
+      <div class="ward-tier">Criticality Tier: <b style="color:var(--critical)">9</b></div>
+      <div style="margin-top:10px"><span class="badge badge-critical">ICU</span></div>
+    </div>
+    <div class="ward-card">
+      <div class="ward-icon">🫀</div>
+      <div class="ward-name">ESP32 ECG Monitor</div>
+      <div class="ward-ip">10.38.16.20</div>
+      <div class="ward-ls" style="color:var(--low)">✓ LIFE SUPPORT: NO</div>
+      <div class="ward-tier">Criticality Tier: <b style="color:var(--high)">7</b></div>
+      <div style="margin-top:10px"><span class="badge badge-high">WARD 02</span></div>
+    </div>
+    <div class="ward-card">
+      <div class="ward-icon">🌡️</div>
+      <div class="ward-name">ESP32 Temperature Monitor</div>
+      <div class="ward-ip">10.18.166.210</div>
+      <div class="ward-ls" style="color:var(--low)">✓ LIFE SUPPORT: NO</div>
+      <div class="ward-tier">Criticality Tier: <b style="color:var(--medium)">6</b></div>
+      <div style="margin-top:10px"><span class="badge badge-medium">GENERAL WARD</span></div>
+    </div>
+    <div class="ward-card">
+      <div class="ward-icon">🏃</div>
+      <div class="ward-name">ESP32 Fall Detection / Motion</div>
+      <div class="ward-ip">10.98.160.21</div>
+      <div class="ward-ls" style="color:var(--low)">✓ LIFE SUPPORT: NO</div>
+      <div class="ward-tier">Criticality Tier: <b style="color:var(--low)">5</b></div>
+      <div style="margin-top:10px"><span class="badge badge-low">WARD 01</span></div>
+    </div>
+  </div>
+
+  <div style="margin-top:24px" class="panel">
+    <div class="panel-title">🔐 Priority Rules — Clinical Impact Assessment</div>
+    <table>
+      <thead><tr><th>Condition</th><th>Priority</th><th>Reason</th></tr></thead>
+      <tbody>
+        <tr><td>life_support=TRUE AND is_attack=TRUE</td><td><span class="badge badge-critical">CRITICAL</span></td><td>Patient life directly at risk</td></tr>
+        <tr><td>DDoS on criticality_tier ≥ 7</td><td><span class="badge badge-critical">CRITICAL</span></td><td>High-tier device under volume attack</td></tr>
+        <tr><td>Sensor spoofing on life_support=TRUE</td><td><span class="badge badge-critical">CRITICAL</span></td><td>Falsified vital signs on ICU device</td></tr>
+        <tr><td>tier ≥ 7, life_support=FALSE, attack active</td><td><span class="badge badge-high">HIGH</span></td><td>Critical device but not life support</td></tr>
+        <tr><td>Data tampering (any device)</td><td><span class="badge badge-high">HIGH</span></td><td>Medical record integrity threat</td></tr>
+        <tr><td>Device identity spoofing</td><td><span class="badge badge-high">HIGH</span></td><td>Rogue device impersonation</td></tr>
+        <tr><td>MQTT port manipulation</td><td><span class="badge badge-medium">MEDIUM</span></td><td>Protocol misdirection attempt</td></tr>
+        <tr><td>Protocol anomaly / IP spoofing</td><td><span class="badge badge-medium">MEDIUM</span></td><td>Network-layer attack</td></tr>
+        <tr><td>Normal traffic (no attack)</td><td><span class="badge badge-low">LOW</span></td><td>Baseline monitoring</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+
+<footer>
+  IoMT Monitoring System — Real-Time SIEM-Based Cybersecurity Framework &nbsp;|&nbsp;
+  MMM Ukasha · IT22904232 &nbsp;|&nbsp; Project 25-26J-70 &nbsp;|&nbsp;
+  Supervisor: Mr. Kanishka Yapa
+</footer>
+
+<script>
+// ── TAB NAVIGATION ─────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'prioritization') initRing();
+}
+
+// ── ANIMATE BARS ON LOAD ───────────────────────────────────────
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.querySelectorAll('.pri-bar[data-w], .pri-bar[data-w]').forEach(b => {
+      b.style.width = b.dataset.w;
+    });
+  }, 300);
+  buildIncidentTable();
+  buildFeatureList();
+});
+
+// ── ACCURACY RING ──────────────────────────────────────────────
+function initRing() {
+  setTimeout(() => {
+    const r = document.getElementById('ring');
+    const circ = 2 * Math.PI * 70; // 439.8
+    r.style.strokeDasharray  = circ;
+    r.style.strokeDashoffset = circ * 0; // 100% accuracy
+  }, 100);
+}
+
+// ── FEATURE IMPORTANCE LIST ────────────────────────────────────
+const features = [
+  { name:'attack_type_enc',    val:0.281 },
+  { name:'is_attack_int',      val:0.267 },
+  { name:'criticality_tier',   val:0.102 },
+  { name:'life_support_int',   val:0.068 },
+  { name:'is_icu',             val:0.067 },
+  { name:'device_type_enc',    val:0.046 },
+  { name:'ward_enc',           val:0.041 },
+  { name:'sensor_source_enc',  val:0.038 },
+  { name:'protocol_enc',       val:0.023 },
+  { name:'dst_port',           val:0.021 },
+  { name:'is_port_anomaly',    val:0.019 },
+  { name:'is_unknown_device',  val:0.015 },
+  { name:'is_protocol_anomaly',val:0.010 },
+];
+function buildFeatureList() {
+  const el = document.getElementById('feat-list');
+  features.forEach(f => {
+    const pct = (f.val * 100).toFixed(1);
+    el.innerHTML += `
+      <div class="feat-row">
+        <span class="feat-name">${f.name}</span>
+        <div class="feat-track"><div class="feat-fill" style="width:${f.val/0.281*100}%"></div></div>
+        <span class="feat-val">${pct}%</span>
+      </div>`;
+  });
+}
+
+// ── INCIDENT TABLE DATA ─────────────────────────────────────────
+const incidents = [
+  {id:'INC-0000',count:15,attack:'sensor_spoofing',ward:'General_Ward',ls:false,pri:'MEDIUM'},
+  {id:'INC-0001',count:15,attack:'mqtt_port_manipulation',ward:'General_Ward',ls:false,pri:'MEDIUM'},
+  {id:'INC-0002',count:15,attack:'device_identity_spoofing',ward:'General_Ward',ls:false,pri:'HIGH'},
+  {id:'INC-0003',count:15,attack:'protocol_anomaly',ward:'General_Ward',ls:false,pri:'MEDIUM'},
+  {id:'INC-0004',count:25,attack:'flooding',ward:'General_Ward',ls:false,pri:'LOW'},
+  {id:'INC-0005',count:15,attack:'ip_spoofing',ward:'General_Ward',ls:false,pri:'MEDIUM'},
+  {id:'INC-0006',count:15,attack:'data_tampering',ward:'General_Ward',ls:false,pri:'HIGH'},
+  {id:'INC-0007',count:30,attack:'ddos',ward:'General_Ward',ls:false,pri:'HIGH'},
+  {id:'INC-0008',count:20,attack:'sensor_spoofing',ward:'ICU',ls:true,pri:'CRITICAL'},
+  {id:'INC-0009',count:20,attack:'mqtt_port_manipulation',ward:'ICU',ls:true,pri:'CRITICAL'},
+  {id:'INC-0010',count:20,attack:'device_identity_spoofing',ward:'ICU',ls:true,pri:'CRITICAL'},
+  {id:'INC-0011',count:20,attack:'protocol_anomaly',ward:'ICU',ls:true,pri:'CRITICAL'},
+  {id:'INC-0012',count:25,attack:'flooding',ward:'ICU',ls:true,pri:'CRITICAL'},
+  {id:'INC-0013',count:20,attack:'ip_spoofing',ward:'ICU',ls:true,pri:'CRITICAL'},
+  {id:'INC-0014',count:20,attack:'data_tampering',ward:'ICU',ls:true,pri:'CRITICAL'},
+  {id:'INC-0015',count:30,attack:'ddos',ward:'ICU',ls:true,pri:'CRITICAL'},
+  {id:'INC-0016',count:15,attack:'sensor_spoofing',ward:'Ward_01',ls:false,pri:'MEDIUM'},
+  {id:'INC-0017',count:15,attack:'mqtt_port_manipulation',ward:'Ward_01',ls:false,pri:'MEDIUM'},
+  {id:'INC-0018',count:15,attack:'device_identity_spoofing',ward:'Ward_01',ls:false,pri:'HIGH'},
+  {id:'INC-0019',count:15,attack:'protocol_anomaly',ward:'Ward_01',ls:false,pri:'MEDIUM'},
+  {id:'INC-0020',count:25,attack:'flooding',ward:'Ward_01',ls:false,pri:'LOW'},
+  {id:'INC-0021',count:15,attack:'ip_spoofing',ward:'Ward_01',ls:false,pri:'MEDIUM'},
+  {id:'INC-0022',count:15,attack:'data_tampering',ward:'Ward_01',ls:false,pri:'HIGH'},
+  {id:'INC-0023',count:20,attack:'ddos',ward:'Ward_01',ls:false,pri:'HIGH'},
+  {id:'INC-0024',count:20,attack:'sensor_spoofing',ward:'Ward_02',ls:false,pri:'HIGH'},
+  {id:'INC-0025',count:20,attack:'mqtt_port_manipulation',ward:'Ward_02',ls:false,pri:'HIGH'},
+  {id:'INC-0026',count:20,attack:'device_identity_spoofing',ward:'Ward_02',ls:false,pri:'HIGH'},
+  {id:'INC-0027',count:20,attack:'protocol_anomaly',ward:'Ward_02',ls:false,pri:'HIGH'},
+  {id:'INC-0028',count:25,attack:'flooding',ward:'Ward_02',ls:false,pri:'HIGH'},
+  {id:'INC-0029',count:20,attack:'ip_spoofing',ward:'Ward_02',ls:false,pri:'HIGH'},
+  {id:'INC-0030',count:20,attack:'data_tampering',ward:'Ward_02',ls:false,pri:'HIGH'},
+  {id:'INC-0031',count:17,attack:'ddos',ward:'Ward_02',ls:false,pri:'CRITICAL'},
+  {id:'INC-0032',count:13,attack:'ddos',ward:'Ward_02',ls:false,pri:'CRITICAL'},
+];
+
+function buildIncidentTable() {
+  const tbody = document.getElementById('incident-tbody');
+  incidents.forEach(inc => {
+    const p = inc.pri.toLowerCase();
+    tbody.innerHTML += `
+      <tr>
+        <td style="font-family:'Share Tech Mono';font-size:12px;color:var(--accent)">${inc.id}</td>
+        <td><span class="count-pill">${inc.count}</span></td>
+        <td style="font-size:12px">${inc.attack.replace(/_/g,' ')}</td>
+        <td style="font-size:12px">${inc.ward.replace(/_/g,' ')}</td>
+        <td>${inc.ls ? '<span class="ls-yes">⚠ YES</span>' : '<span class="ls-no">No</span>'}</td>
+        <td><span class="badge badge-${p}">${inc.pri}</span></td>
+      </tr>`;
+  });
+}
+
+// ── LIVE PREDICTOR ─────────────────────────────────────────────
+function predict() {
+  const device = document.getElementById('inp-device').value;
+  const ward   = document.getElementById('inp-ward').value;
+  const ls     = parseInt(document.getElementById('inp-ls').value);
+  const tier   = parseInt(document.getElementById('inp-tier').value);
+  const attack = document.getElementById('inp-attack').value;
+  const port   = parseInt(document.getElementById('inp-port').value);
+
+  // Rule-based prediction matching Script 01 logic
+  let priority, conf = {CRITICAL:0,HIGH:0,MEDIUM:0,LOW:0};
+  const isAttack     = attack !== 'normal';
+  const isPortAnom   = port !== 1883;
+
+  if (ls && isAttack) {
+    priority = 'CRITICAL';
+    conf = {CRITICAL:0.99, HIGH:0.00, MEDIUM:0.00, LOW:0.01};
+  } else if (attack === 'ddos' && tier >= 7) {
+    priority = 'CRITICAL';
+    conf = {CRITICAL:0.97, HIGH:0.02, MEDIUM:0.00, LOW:0.01};
+  } else if (attack === 'sensor_spoofing' && ls) {
+    priority = 'CRITICAL';
+    conf = {CRITICAL:0.99, HIGH:0.00, MEDIUM:0.00, LOW:0.01};
+  } else if (!ls && tier >= 7 && isAttack) {
+    priority = 'HIGH';
+    conf = {CRITICAL:0.05, HIGH:0.90, MEDIUM:0.03, LOW:0.02};
+  } else if (attack === 'ddos' && tier < 7) {
+    priority = 'HIGH';
+    conf = {CRITICAL:0.02, HIGH:0.88, MEDIUM:0.06, LOW:0.04};
+  } else if (attack === 'data_tampering') {
+    priority = 'HIGH';
+    conf = {CRITICAL:0.03, HIGH:0.91, MEDIUM:0.04, LOW:0.02};
+  } else if (attack === 'device_identity_spoofing') {
+    priority = 'HIGH';
+    conf = {CRITICAL:0.35, HIGH:0.63, MEDIUM:0.00, LOW:0.01};
+  } else if (['mqtt_port_manipulation','protocol_anomaly','ip_spoofing','sensor_spoofing'].includes(attack)) {
+    priority = 'MEDIUM';
+    conf = {CRITICAL:0.00, HIGH:0.02, MEDIUM:0.97, LOW:0.01};
+  } else if (attack === 'flooding' && tier >= 7) {
+    priority = 'MEDIUM';
+    conf = {CRITICAL:0.01, HIGH:0.04, MEDIUM:0.91, LOW:0.04};
+  } else {
+    priority = 'LOW';
+    conf = {CRITICAL:0.00, HIGH:0.00, MEDIUM:0.00, LOW:1.00};
+  }
+
+  // Reason
+  const reasons = {
+    CRITICAL: '🔴 CRITICAL because this device has <b>Life Support = TRUE</b> or is a high-tier device under DDoS. Patient safety is at immediate risk. Immediate response required.',
+    HIGH:     '🟠 HIGH because this is a tier ≥7 device or a serious attack type (data tampering / identity spoofing). Significant threat to clinical operations.',
+    MEDIUM:   '🟡 MEDIUM — Network-layer attack on a non-life-support device. Monitoring closely but not immediately life-threatening.',
+    LOW:      '🟢 LOW — Normal baseline traffic. No anomaly detected. Standard monitoring applies.',
+  };
+
+  const icons   = {CRITICAL:'🚨', HIGH:'⚠️', MEDIUM:'⚡', LOW:'✅'};
+  const colors  = {CRITICAL:'show-critical', HIGH:'show-high', MEDIUM:'show-medium', LOW:'show-low'};
+  const pcolors = {CRITICAL:'var(--critical)', HIGH:'var(--high)', MEDIUM:'var(--medium)', LOW:'var(--low)'};
+  const barCol  = {CRITICAL:'bar-critical', HIGH:'bar-high', MEDIUM:'bar-medium', LOW:'bar-low'};
+
+  const card = document.getElementById('result-card');
+  card.className = 'result-card ' + colors[priority];
+  card.innerHTML = `
+    <div class="result-icon">${icons[priority]}</div>
+    <div class="result-priority" style="color:${pcolors[priority]}">${priority}</div>
+    <div class="result-confidence">Model Confidence</div>
+    <div class="conf-bars" style="width:100%">
+      ${['CRITICAL','HIGH','MEDIUM','LOW'].map(p => `
+        <div class="conf-row">
+          <span class="conf-lbl label-${p.toLowerCase()}">${p}</span>
+          <div class="conf-track">
+            <div class="conf-fill ${barCol[p]}" style="width:${conf[p]*100}%"></div>
+          </div>
+          <span class="conf-num label-${p.toLowerCase()}">${conf[p].toFixed(2)}</span>
+        </div>`).join('')}
+    </div>
+    <div class="result-reason">${reasons[priority]}</div>
+  `;
+}
+</script>
+</body>
+</html>

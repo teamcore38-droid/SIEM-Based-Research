@@ -1,0 +1,7 @@
+incident_id,affected_device,device_type,severity,confidence_summary,number_of_correlated_alerts,time_window,compliance_tags,recommended_action,timestamp,start_time,end_time
+INC-47F3A9E7,ICU-VENT-015,ventilator,Medium,0.35,1,5 minutes,HIPAA,Monitor device ICU-VENT-015. Check for misconfiguration.,2026-02-01T12:38:58.076257,2026-02-01T12:38:58.076257,2026-02-01T12:38:58.076257
+INC-90E7E396,ICU-VENT-015,ventilator,Medium,0.23,1,5 minutes,HIPAA,Monitor device ICU-VENT-015. Check for misconfiguration.,2026-02-01T12:46:58.076257,2026-02-01T12:46:58.076257,2026-02-01T12:46:58.076257
+INC-6AE520A5,ADMIN-PC-102,admin_pc,Low,0.38,1,5 minutes,SL-DPA,Log and monitor. Low severity event.,2026-02-01T12:40:58.076257,2026-02-01T12:40:58.076257,2026-02-01T12:40:58.076257
+INC-8D511D49,ADMIN-PC-102,admin_pc,Medium,0.72,3,5 minutes,SL-DPA,Monitor device ADMIN-PC-102. Check for misconfiguration.,2026-02-01T13:14:58.076257,2026-02-01T13:12:58.076257,2026-02-01T13:14:58.076257
+INC-E10CCD7D,ICU-VENT-014,ventilator,Critical,0.83,7,5 minutes,HIPAA,IMMEDIATE ACTION REQUIRED: Isolate ventilator id ICU-VENT-014. Contact on-call medical engineering.,2026-02-01T12:45:28.076257,2026-02-01T12:42:58.076257,2026-02-01T12:45:28.076257
+INC-51206A98,GW-001,gateway,High,0.68,16,5 minutes,HIPAA; SL-DPA,Review required. Investigate gateway logs. Potential compromise detected.,2026-02-01T13:02:58.076257,2026-02-01T12:57:58.076257,2026-02-01T13:02:58.076257

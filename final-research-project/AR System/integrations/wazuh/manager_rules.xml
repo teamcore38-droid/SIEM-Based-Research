@@ -1,0 +1,54 @@
+<!-- 
+    ARS CUSTOM RULES
+    Paste this into your Wazuh Manager's /var/ossec/etc/rules/local_rules.xml
+    or via the Wazuh Dashboard: Management > Rules > Custom rules
+-->
+
+<group name="ars_defense_system,">
+
+  <!-- Base Rule: Catch all ARS logs -->
+  <rule id="100500" level="3">
+    <decoded_as>ars-core</decoded_as>
+    <description>ARS: General System Event</description>
+  </rule>
+
+  <!-- Level 7: Threat Detected but Monitored -->
+  <rule id="100501" level="7">
+    <if_sid>100500</if_sid>
+    <field name="ars_tag">THREAT_INTEL</field>
+    <description>ARS AI: Potential Threat Analyzed</description>
+    <group>mitre_attack_recon,</group>
+  </rule>
+
+  <!-- Level 10: Active Response Triggered -->
+  <rule id="100502" level="10">
+    <if_sid>100500</if_sid>
+    <field name="ars_tag">RESPONSE</field>
+    <description>ARS DEFENSE: Active Containment/Blocking Executed</description>
+    <group>mitre_attack_defense_evasion,active_response,</group>
+  </rule>
+
+  <!-- Level 12: Permanent Quarantine (Critical) -->
+  <rule id="100503" level="12">
+    <if_sid>100500</if_sid>
+    <field name="ars_tag">QUARANTINE_OP</field>
+    <description>ARS CRITICAL: Device Permanently Quarantined</description>
+    <options>alert_by_email</options>
+  </rule>
+
+  <!-- Level 10: DLP / Privacy Violation -->
+  <rule id="100504" level="10">
+    <if_sid>100500</if_sid>
+    <field name="ars_tag">DLP</field>
+    <description>ARS PRIVACY: PHI Data Redacted from Logs</description>
+    <group>gdpr_iv_35.7.d,hippaa_164.312.a.1,</group>
+  </rule>
+
+  <!-- Level 3: Success/Audit -->
+  <rule id="100505" level="3">
+    <if_sid>100500</if_sid>
+    <field name="ars_tag">AUDIT_PASS</field>
+    <description>ARS AUDIT: System Action Verified Safe</description>
+  </rule>
+
+</group>

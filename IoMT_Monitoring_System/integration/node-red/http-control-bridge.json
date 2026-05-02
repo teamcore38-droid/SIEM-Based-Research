@@ -1,0 +1,152 @@
+[
+  {
+    "id": "b3f5f8c0d4d1c8a1",
+    "type": "tab",
+    "label": "IoMT HTTP Control Bridge",
+    "disabled": false,
+    "info": "HTTP bridge for backend-issued control actions. Import this flow into Node-RED, set the MQTT broker node, then point DEVICE_CONTROL_ENDPOINT at the HTTP In endpoint."
+  },
+  {
+    "id": "c1a0e3b9d6f2a7c4",
+    "type": "comment",
+    "z": "b3f5f8c0d4d1c8a1",
+    "name": "Backend endpoint",
+    "info": "POST JSON to /iomt/control. The flow accepts backend payloads with device_id, action, command_id, command_topic, and metadata.",
+    "x": 230,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "5d1d9a8a7a2b1a11",
+    "type": "http in",
+    "z": "b3f5f8c0d4d1c8a1",
+    "name": "control command",
+    "url": "/iomt/control",
+    "method": "post",
+    "upload": false,
+    "swaggerDoc": "",
+    "x": 170,
+    "y": 140,
+    "wires": [
+      [
+        "b0e3b45a0c2d0c7f"
+      ]
+    ]
+  },
+  {
+    "id": "b0e3b45a0c2d0c7f",
+    "type": "json",
+    "z": "b3f5f8c0d4d1c8a1",
+    "name": "parse body",
+    "property": "payload",
+    "action": "obj",
+    "pretty": false,
+    "x": 360,
+    "y": 140,
+    "wires": [
+      [
+        "7a7a3d1e4d2f9a10"
+      ]
+    ]
+  },
+  {
+    "id": "7a7a3d1e4d2f9a10",
+    "type": "function",
+    "z": "b3f5f8c0d4d1c8a1",
+    "name": "normalize and route",
+    "func": "const body = msg.payload || {};\n\nconst actionMap = {\n  temporary_isolate: \"TEMPORARY_ISOLATE\",\n  quarantine: \"PERMANENT_QUARANTINE\",\n  shutdown: \"PERMANENT_QUARANTINE\",\n  rollback: \"ROLLBACK\",\n  restore: \"ALL_CLEAR\",\n  monitor: \"MONITOR\",\n  log_and_monitor: \"MONITOR\"\n};\n\nconst deviceMap = {\n  \"890cc34f\": \"PULSE_ESP32_001\",\n  \"PULSE_ESP32_001\": \"PULSE_ESP32_001\",\n  \"ECG_ESP32_001\": \"ECG_ESP32_001\",\n  \"TEMP_ESP32_001\": \"TEMP_ESP32_003\",\n  \"TEMP_ESP32_003\": \"TEMP_ESP32_003\",\n  \"MOTION_ESP32_001\": \"FALL_ESP32_004\",\n  \"FALL_ESP32_004\": \"FALL_ESP32_004\"\n};\n\nif (!body.device_id) {\n  const errorMsg = {\n    payload: {\n      ok: false,\n      error: \"Missing device_id\"\n    },\n    statusCode: 400,\n    headers: {\n      \"Content-Type\": \"application/json\"\n    }\n  };\n  return [null, errorMsg];\n}\n\nconst sourceDeviceId = String(body.device_id);\nconst resolvedDeviceId = deviceMap[sourceDeviceId] || sourceDeviceId;\nconst requestedAction = String(body.action || body.requested_action || body.command || \"monitor\");\nconst normalizedCommand = actionMap[requestedAction.toLowerCase()] || String(body.command || requestedAction || \"MONITOR\").toUpperCase();\nconst topic = body.command_topic || `hospital/iomt/command/${resolvedDeviceId}`;\n\nconst commandPayload = {\n  command: normalizedCommand,\n  requested_action: requestedAction,\n  command_id: body.command_id || `NR-${Date.now()}`,\n  device_id: resolvedDeviceId,\n  source_device_id: sourceDeviceId,\n  command_topic: topic,\n  telemetry_topic: body.telemetry_topic || null,\n  metadata: body.metadata || {},\n  issued_by: body.requested_by || \"node-red\",\n  forwarded_at: new Date().toISOString()\n};\n\nmsg.topic = topic;\nmsg.qos = 1;\nmsg.retain = false;\nmsg.payload = JSON.stringify(commandPayload);\n\nconst responseMsg = {\n  payload: {\n    ok: true,\n    routed: true,\n    forward_mode: \"http-to-mqtt\",\n    device_id: resolvedDeviceId,\n    source_device_id: sourceDeviceId,\n    command_topic: topic,\n    command: normalizedCommand,\n    requested_action: requestedAction\n  },\n  statusCode: 200,\n  headers: {\n    \"Content-Type\": \"application/json\"\n  }\n};\n\nreturn [msg, responseMsg];",
+    "outputs": 2,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 590,
+    "y": 140,
+    "wires": [
+      [
+        "c6b5d0e7f8a1d2c3",
+        "1f3a5c7e9b2d4f6a"
+      ],
+      [
+        "4a7c9e1b2d3f5a6c"
+      ]
+    ]
+  },
+  {
+    "id": "c6b5d0e7f8a1d2c3",
+    "type": "mqtt out",
+    "z": "b3f5f8c0d4d1c8a1",
+    "name": "publish command",
+    "topic": "",
+    "qos": "1",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "a9f1e2d3c4b5a697",
+    "x": 840,
+    "y": 120,
+    "wires": []
+  },
+  {
+    "id": "1f3a5c7e9b2d4f6a",
+    "type": "debug",
+    "z": "b3f5f8c0d4d1c8a1",
+    "name": "control audit",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 840,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "4a7c9e1b2d3f5a6c",
+    "type": "http response",
+    "z": "b3f5f8c0d4d1c8a1",
+    "name": "ack",
+    "statusCode": "",
+    "headers": {},
+    "x": 840,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "a9f1e2d3c4b5a697",
+    "type": "mqtt-broker",
+    "name": "iomt-broker",
+    "broker": "YOUR_MQTT_BROKER_IP",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  }
+]

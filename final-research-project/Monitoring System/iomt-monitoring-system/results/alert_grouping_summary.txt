@@ -1,0 +1,54 @@
+===========================================================================
+ALERT GROUPING ANALYSIS SUMMARY
+===========================================================================
+
+Generated: 2026-01-04 18:49:32
+
+===========================================================================
+OVERALL STATISTICS
+===========================================================================
+Total Attack Alerts:     7,951
+Grouped Alerts:          7,951
+Number of Groups:        7951
+Average Group Size:      1.00 alerts
+Largest Group:           1 alerts
+Smallest Group:          1 alerts
+Alert Reduction:         0.0%
+
+===========================================================================
+GROUPS BY ATTACK TYPE
+===========================================================================
+                  num_groups  num_alerts  avg_alerts_per_group
+attack_type                                                   
+ble_spoofing             971         971                   1.0
+buffer_overflow          980         980                   1.0
+ddos                    1008        1008                   1.0
+firmware_exploit        1049        1049                   1.0
+mitm_ssl_strip           923         923                   1.0
+mqtt_injection          1105        1105                   1.0
+replay_attack            938         938                   1.0
+wifi_deauth              977         977                   1.0
+
+===========================================================================
+TOP 10 LARGEST CAMPAIGNS
+===========================================================================
+ 1. GRP_0005: 1 alerts (buffer_overflow, General_Ward)
+ 2. GRP_0007: 1 alerts (ddos, Emergency)
+ 3. GRP_0011: 1 alerts (wifi_deauth, OPD)
+ 4. GRP_0012: 1 alerts (ddos, General_Ward)
+ 5. GRP_0013: 1 alerts (mitm_ssl_strip, Rehabilitation)
+ 6. GRP_0022: 1 alerts (mitm_ssl_strip, Emergency)
+ 7. GRP_0023: 1 alerts (mqtt_injection, ICU)
+ 8. GRP_0031: 1 alerts (mitm_ssl_strip, General_Ward)
+ 9. GRP_0033: 1 alerts (ddos, ICU)
+10. GRP_0039: 1 alerts (wifi_deauth, OPD)
+
+===========================================================================
+ALERT REDUCTION BENEFIT
+===========================================================================
+Without Grouping: Security team sees 7,951 individual alerts
+With Grouping:    Security team sees 7951 grouped campaigns
+Time Saved:       0.0% fewer alerts to review
+
+Example: Instead of reviewing 7,951 alerts manually,
+analysts can focus on 7951 coordinated attack campaigns.

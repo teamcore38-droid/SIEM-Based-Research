@@ -1,0 +1,205 @@
+[
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Unknown_Traffic",
+    "confidence_score": 0.2,
+    "timestamp": "2026-03-10T21:22:33.672096"
+  },
+  {
+    "device_id": "ICU-VENT-014",
+    "device_type": "ventilator",
+    "prediction": "Anomaly",
+    "confidence_score": 0.95,
+    "timestamp": "2026-03-10T21:23:33.672096"
+  },
+  {
+    "device_id": "ICU-VENT-014",
+    "device_type": "ventilator",
+    "prediction": "Anomaly",
+    "confidence_score": 0.86,
+    "timestamp": "2026-03-10T21:24:03.672096"
+  },
+  {
+    "device_id": "ICU-VENT-014",
+    "device_type": "ventilator",
+    "prediction": "Anomaly",
+    "confidence_score": 0.86,
+    "timestamp": "2026-03-10T21:24:33.672096"
+  },
+  {
+    "device_id": "ICU-VENT-014",
+    "device_type": "ventilator",
+    "prediction": "Anomaly",
+    "confidence_score": 0.95,
+    "timestamp": "2026-03-10T21:25:03.672096"
+  },
+  {
+    "device_id": "ICU-VENT-014",
+    "device_type": "ventilator",
+    "prediction": "Ransomware_Activity",
+    "confidence_score": 0.93,
+    "timestamp": "2026-03-10T21:25:33.672096"
+  },
+  {
+    "device_id": "ICU-VENT-014",
+    "device_type": "ventilator",
+    "prediction": "Ransomware_Activity",
+    "confidence_score": 0.93,
+    "timestamp": "2026-03-10T21:26:03.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.72,
+    "timestamp": "2026-03-10T21:38:33.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.7,
+    "timestamp": "2026-03-10T21:38:43.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.69,
+    "timestamp": "2026-03-10T21:38:53.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.61,
+    "timestamp": "2026-03-10T21:39:03.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.68,
+    "timestamp": "2026-03-10T21:39:13.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.65,
+    "timestamp": "2026-03-10T21:39:23.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.79,
+    "timestamp": "2026-03-10T21:39:33.672096"
+  },
+  {
+    "device_id": "MRI-SCAN-001",
+    "device_type": "mri_scanner",
+    "prediction": "Unknown_Traffic",
+    "confidence_score": 0.28,
+    "timestamp": "2026-03-10T21:39:33.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.75,
+    "timestamp": "2026-03-10T21:39:43.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.62,
+    "timestamp": "2026-03-10T21:39:53.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.61,
+    "timestamp": "2026-03-10T21:40:03.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.62,
+    "timestamp": "2026-03-10T21:40:13.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.76,
+    "timestamp": "2026-03-10T21:40:23.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.76,
+    "timestamp": "2026-03-10T21:40:33.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.72,
+    "timestamp": "2026-03-10T21:40:43.672096"
+  },
+  {
+    "device_id": "GW-001",
+    "device_type": "gateway",
+    "prediction": "Network_Scan",
+    "confidence_score": 0.76,
+    "timestamp": "2026-03-10T21:40:53.672096"
+  },
+  {
+    "device_id": "ICU-VENT-014",
+    "device_type": "ventilator",
+    "prediction": "Unknown_Traffic",
+    "confidence_score": 0.26,
+    "timestamp": "2026-03-10T21:46:33.672096"
+  },
+  {
+    "device_id": "ADMIN-PC-102",
+    "device_type": "admin_pc",
+    "prediction": "Unauthorized_Access_Attempt",
+    "confidence_score": 0.71,
+    "timestamp": "2026-03-10T21:53:33.672096"
+  },
+  {
+    "device_id": "ADMIN-PC-102",
+    "device_type": "admin_pc",
+    "prediction": "Unauthorized_Access_Attempt",
+    "confidence_score": 0.85,
+    "timestamp": "2026-03-10T21:54:33.672096"
+  },
+  {
+    "device_id": "ADMIN-PC-102",
+    "device_type": "admin_pc",
+    "prediction": "Unauthorized_Access_Attempt",
+    "confidence_score": 0.9,
+    "timestamp": "2026-03-10T21:55:33.672096"
+  },
+  {
+    "device_id": "MRI-SCAN-001",
+    "device_type": "mri_scanner",
+    "prediction": "Unknown_Traffic",
+    "confidence_score": 0.43,
+    "timestamp": "2026-03-10T21:58:33.672096"
+  },
+  {
+    "device_id": "ICU-VENT-015",
+    "device_type": "ventilator",
+    "prediction": "Unknown_Traffic",
+    "confidence_score": 0.31,
+    "timestamp": "2026-03-10T22:01:33.672096"
+  }
+]

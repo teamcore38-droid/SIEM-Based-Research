@@ -1,0 +1,30 @@
+# Secrets
+.env
+.env.local
+mongoURI.txt
+*.pem
+*.key
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node / frontend build output
+node_modules/
+.next/
+dist/
+out/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak

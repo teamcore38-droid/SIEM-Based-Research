@@ -1,0 +1,38 @@
+# Python internals
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Logs
+*.log
+logs/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Project Specific Output and Intermediate files
+results/
+Wazuh_Admin_Portal_Reports/
+
+# OS specific
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+
+# Optional: Large data files (uncomment to ignore)
+# data/
+# models/*.pkl

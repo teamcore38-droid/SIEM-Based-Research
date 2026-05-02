@@ -1,0 +1,99 @@
+[
+  {
+    "incident_id": "INC-47F3A9E7",
+    "affected_device": "ICU-VENT-015",
+    "device_type": "ventilator",
+    "severity": "Medium",
+    "confidence_summary": 0.35,
+    "number_of_correlated_alerts": 1,
+    "time_window": "5 minutes",
+    "compliance_tags": [
+      "HIPAA"
+    ],
+    "recommended_action": "Monitor device ICU-VENT-015. Check for misconfiguration.",
+    "timestamp": "2026-02-01T12:38:58.076257",
+    "start_time": "2026-02-01T12:38:58.076257",
+    "end_time": "2026-02-01T12:38:58.076257"
+  },
+  {
+    "incident_id": "INC-90E7E396",
+    "affected_device": "ICU-VENT-015",
+    "device_type": "ventilator",
+    "severity": "Medium",
+    "confidence_summary": 0.23,
+    "number_of_correlated_alerts": 1,
+    "time_window": "5 minutes",
+    "compliance_tags": [
+      "HIPAA"
+    ],
+    "recommended_action": "Monitor device ICU-VENT-015. Check for misconfiguration.",
+    "timestamp": "2026-02-01T12:46:58.076257",
+    "start_time": "2026-02-01T12:46:58.076257",
+    "end_time": "2026-02-01T12:46:58.076257"
+  },
+  {
+    "incident_id": "INC-6AE520A5",
+    "affected_device": "ADMIN-PC-102",
+    "device_type": "admin_pc",
+    "severity": "Low",
+    "confidence_summary": 0.38,
+    "number_of_correlated_alerts": 1,
+    "time_window": "5 minutes",
+    "compliance_tags": [
+      "SL-DPA"
+    ],
+    "recommended_action": "Log and monitor. Low severity event.",
+    "timestamp": "2026-02-01T12:40:58.076257",
+    "start_time": "2026-02-01T12:40:58.076257",
+    "end_time": "2026-02-01T12:40:58.076257"
+  },
+  {
+    "incident_id": "INC-8D511D49",
+    "affected_device": "ADMIN-PC-102",
+    "device_type": "admin_pc",
+    "severity": "Medium",
+    "confidence_summary": 0.72,
+    "number_of_correlated_alerts": 3,
+    "time_window": "5 minutes",
+    "compliance_tags": [
+      "SL-DPA"
+    ],
+    "recommended_action": "Monitor device ADMIN-PC-102. Check for misconfiguration.",
+    "timestamp": "2026-02-01T13:14:58.076257",
+    "start_time": "2026-02-01T13:12:58.076257",
+    "end_time": "2026-02-01T13:14:58.076257"
+  },
+  {
+    "incident_id": "INC-E10CCD7D",
+    "affected_device": "ICU-VENT-014",
+    "device_type": "ventilator",
+    "severity": "Critical",
+    "confidence_summary": 0.83,
+    "number_of_correlated_alerts": 7,
+    "time_window": "5 minutes",
+    "compliance_tags": [
+      "HIPAA"
+    ],
+    "recommended_action": "IMMEDIATE ACTION REQUIRED: Isolate ventilator id ICU-VENT-014. Contact on-call medical engineering.",
+    "timestamp": "2026-02-01T12:45:28.076257",
+    "start_time": "2026-02-01T12:42:58.076257",
+    "end_time": "2026-02-01T12:45:28.076257"
+  },
+  {
+    "incident_id": "INC-51206A98",
+    "affected_device": "GW-001",
+    "device_type": "gateway",
+    "severity": "High",
+    "confidence_summary": 0.68,
+    "number_of_correlated_alerts": 16,
+    "time_window": "5 minutes",
+    "compliance_tags": [
+      "HIPAA",
+      "SL-DPA"
+    ],
+    "recommended_action": "Review required. Investigate gateway logs. Potential compromise detected.",
+    "timestamp": "2026-02-01T13:02:58.076257",
+    "start_time": "2026-02-01T12:57:58.076257",
+    "end_time": "2026-02-01T13:02:58.076257"
+  }
+]

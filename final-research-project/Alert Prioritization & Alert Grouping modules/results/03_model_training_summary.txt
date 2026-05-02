@@ -1,0 +1,33 @@
+IoMT Alert Prioritization Model — Training Summary
+Student: MMM Ukasha  IT22904232
+============================================================
+
+Overall Accuracy: 100.00%
+
+Classification Report:
+              precision    recall  f1-score   support
+
+    CRITICAL     1.0000    1.0000    1.0000        41
+        HIGH     1.0000    1.0000    1.0000        51
+         LOW     1.0000    1.0000    1.0000       364
+      MEDIUM     1.0000    1.0000    1.0000        24
+
+    accuracy                         1.0000       480
+   macro avg     1.0000    1.0000    1.0000       480
+weighted avg     1.0000    1.0000    1.0000       480
+
+Top Feature Importances:
+            feature  importance
+    attack_type_enc    0.281486
+      is_attack_int    0.267158
+   criticality_tier    0.102111
+   life_support_int    0.068404
+             is_icu    0.066891
+    device_type_enc    0.045582
+           ward_enc    0.041258
+  sensor_source_enc    0.037992
+       protocol_enc    0.023479
+           dst_port    0.020607
+    is_port_anomaly    0.019377
+  is_unknown_device    0.015249
+is_protocol_anomaly    0.010407

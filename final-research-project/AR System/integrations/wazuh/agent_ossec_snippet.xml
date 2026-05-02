@@ -1,0 +1,10 @@
+<!-- 
+    ARS SYSTEM INTEGRATION
+    Append this block to your Wazuh Agent config file usually found at:
+    C:\Program Files (x86)\ossec-agent\ossec.conf
+-->
+
+<localfile>
+    <location>C:\Users\yasim\OneDrive - Sri Lanka Institute of Information Technology (1)\Desktop\AR System\src\core\ars_audit.log</location>
+    <log_format>syslog</log_format>
+</localfile>

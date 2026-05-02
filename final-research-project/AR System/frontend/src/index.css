@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply text-white font-mono overflow-hidden;
+    background: radial-gradient(ellipse at top, #0f172a 0%, #020617 100%);
+    min-height: 100vh;
+  }
+}
+
+/* Custom Scrollbar for Sci-Fi look */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-900;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-blue-500/30 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-blue-500/60;
+}
