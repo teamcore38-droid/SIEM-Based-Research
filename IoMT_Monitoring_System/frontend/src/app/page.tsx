@@ -26,7 +26,7 @@ import {
   StopCircle,
   Table2
 } from "lucide-react";
-import { AnalyzeResult, PredictionRecord, SensorProfile, SimulationConfig, SimulatorStatus, Summary, TelemetryItem, TickResult, api } from "@/lib/api";
+import { AnalyzeResult, PredictionRecord, ReportPayload, SensorProfile, SimulationConfig, SimulatorStatus, Summary, TelemetryItem, TickResult, api } from "@/lib/api";
 
 const views = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
@@ -304,14 +304,30 @@ export default function Home() {
   };
 
   const exportCsv = () => {
-    const rows = telemetry.slice(0, 30);
-    const headers = ["timestamp", "device_id", "device_type", "ward", "attack_type", "is_attack"];
-    const csv = [headers.join(","), ...rows.map((row) => headers.map((key) => displayValue(row, key, "")).join(","))].join("\n");
+    const rows = telemetry.slice(0, 40);
+    const headers = [
+      "timestamp",
+      "device_id",
+      "device_type",
+      "ward",
+      "protocol",
+      "src_ip",
+      "dst_port",
+      "attack_type",
+      "is_attack",
+      "device_state",
+      "network_status"
+    ];
+    const encodeCell = (raw: string) => `"${raw.replaceAll("\"", "\"\"")}"`;
+    const csv = [
+      headers.join(","),
+      ...rows.map((row) => headers.map((key) => encodeCell(displayValue(row, key, ""))).join(","))
+    ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "iomt-telemetry-evidence.csv";
+    link.download = "iomt-siem-telemetry-evidence.csv";
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -319,39 +335,253 @@ export default function Home() {
   const exportPdf = async () => {
     const report = await api.report();
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 16;
+    const contentWidth = pageWidth - margin * 2;
+    let y = 20;
+
+    const ensureSpace = (height: number) => {
+      if (y + height <= pageHeight - 18) return;
+      doc.addPage();
+      y = 20;
+    };
+
+    const addWrapped = (text: string, x: number, maxWidth: number, lineHeight = 6) => {
+      const lines = doc.splitTextToSize(text, maxWidth);
+      ensureSpace(lines.length * lineHeight + 4);
+      doc.text(lines, x, y);
+      y += lines.length * lineHeight + 2;
+    };
+
+    const addSectionTitle = (title: string) => {
+      ensureSpace(16);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.setTextColor(21, 25, 23);
+      doc.text(title, margin, y);
+      y += 4;
+      doc.setDrawColor(24, 115, 93);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 8;
+    };
+
+    const addLabelValue = (label: string, valueText: string) => {
+      ensureSpace(8);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(`${label}:`, margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(valueText, margin + 35, y);
+      y += 7;
+    };
+
+    const addBulletList = (items: string[]) => {
+      items.forEach((item) => {
+        ensureSpace(8);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        addWrapped(`- ${item}`, margin + 3, contentWidth - 3, 5);
+      });
+    };
+
+    const addMetricGrid = (items: Array<{ label: string; value: string }>) => {
+      const gap = 6;
+      const boxWidth = (contentWidth - gap) / 2;
+      const boxHeight = 22;
+      for (let index = 0; index < items.length; index += 2) {
+        ensureSpace(boxHeight + 6);
+        const row = items.slice(index, index + 2);
+        row.forEach((item, columnIndex) => {
+          const x = margin + columnIndex * (boxWidth + gap);
+          doc.setFillColor(244, 247, 242);
+          doc.setDrawColor(215, 223, 216);
+          doc.roundedRect(x, y, boxWidth, boxHeight, 3, 3, "FD");
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9);
+          doc.setTextColor(102, 113, 107);
+          doc.text(item.label.toUpperCase(), x + 4, y + 7);
+          doc.setFontSize(13);
+          doc.setTextColor(21, 25, 23);
+          doc.text(item.value, x + 4, y + 16);
+        });
+        y += boxHeight + 6;
+      }
+    };
+
+    const latestAnalysis = report.latest_analysis;
+    const restrictions = report.active_restrictions?.items ?? [];
+    const recentPredictions = report.recent_predictions ?? [];
+
+    doc.setFillColor(21, 25, 23);
+    doc.rect(0, 0, pageWidth, 42, "F");
+    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.text("IoMT SIEM Evidence Report", 16, 18);
+    doc.setFontSize(20);
+    doc.text("IoMT SIEM Evidence Report", margin, 18);
     doc.setFont("helvetica", "normal");
-    doc.text(`Generated: ${formatLocalDateTime(report.generated_at)}`, 16, 30);
-    doc.text(`Total logs: ${String(report.total_logs)}`, 16, 42);
-    doc.text(`Attack logs: ${String(report.attack_logs)}`, 16, 54);
-    doc.text(`Responses: ${String(report.total_responses)}`, 16, 66);
-    doc.text(`Model accuracy: ${String(report.model_accuracy)}`, 16, 78);
-    doc.text(`Alert reduction: ${String(report.alert_reduction)}`, 16, 90);
-    doc.text("Redacted Evidence:", 16, 106);
-    doc.text(String(report.redacted_evidence ?? "No redacted evidence available."), 16, 118, { maxWidth: 175 });
+    doc.setFontSize(10);
+    doc.text("Research monitoring, AI validation, and operational response summary", margin, 27);
+    doc.text(`Generated ${formatLocalDateTime(report.generated_at)}`, margin, 34);
+    y = 54;
+
+    addSectionTitle("Executive Summary");
+    addMetricGrid([
+      { label: "Mode", value: String(report.mode ?? "unknown").toUpperCase() },
+      { label: "Active devices", value: String(report.active_devices ?? 0) },
+      { label: "Total telemetry logs", value: String(report.total_logs ?? 0) },
+      { label: "Attack-like logs", value: String(report.attack_logs ?? 0) },
+      { label: "Response actions", value: String(report.total_responses ?? 0) },
+      { label: "Alert reduction", value: String(report.alert_reduction ?? "-") },
+    ]);
+
+    addSectionTitle("Severity Distribution");
+    addMetricGrid([
+      { label: "Critical", value: String(report.severity_counts?.CRITICAL ?? 0) },
+      { label: "High", value: String(report.severity_counts?.HIGH ?? 0) },
+      { label: "Medium", value: String(report.severity_counts?.MEDIUM ?? 0) },
+      { label: "Low", value: String(report.severity_counts?.LOW ?? 0) },
+    ]);
+
+    addSectionTitle("Operational State");
+    addLabelValue("Simulator", report.simulator?.running ? `Running (${report.simulator.ticks} ticks)` : "Stopped");
+    addLabelValue("Data mode", String(report.simulation_config?.data_mode ?? "simulation"));
+    addLabelValue("Simulation mode", String(report.simulation_config?.simulation_mode ?? "normal"));
+    addLabelValue("Active restrictions", String(report.active_restrictions?.count ?? 0));
+
+    if (restrictions.length) {
+      ensureSpace(10);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text("Restricted / quarantined devices", margin, y);
+      y += 7;
+      restrictions.slice(0, 5).forEach((item) => {
+        const line = `${value(item, "device_id")} | ${value(item, "state")} | ${value(item, "reason")}`;
+        addWrapped(line, margin + 2, contentWidth - 2, 5);
+      });
+    }
+
+    if (latestAnalysis) {
+      addSectionTitle("Latest Incident Assessment");
+      addLabelValue("Priority", String(latestAnalysis.alert.priority));
+      addLabelValue("Attack prediction", String(latestAnalysis.attack_prediction.predicted_label));
+      addLabelValue("Correlation verdict", String(latestAnalysis.live_correlation.recommended_verdict));
+      addLabelValue("Final action", actionLabel(latestAnalysis.decision.action));
+      addWrapped(latestAnalysis.decision.reason, margin, contentWidth, 5);
+    }
+
+    if (recentPredictions.length) {
+      addSectionTitle("Recent Prediction Snapshot");
+      recentPredictions.slice(0, 5).forEach((item) => {
+        const line = [
+          value(item, "device_id"),
+          value(item, "priority"),
+          value(item, "attack_label"),
+          value(item, "correlation_verdict"),
+          actionLabel(value(item, "decision_action", "monitor")),
+        ].join(" | ");
+        addWrapped(line, margin, contentWidth, 5);
+      });
+    }
+
+    addSectionTitle("PHI-Redacted Evidence");
+    addWrapped(String(report.redacted_evidence ?? "No redacted evidence available."), margin, contentWidth, 5);
+
+    addSectionTitle("Method Notes");
+    addBulletList(report.notes ?? []);
+
     doc.save("iomt-siem-evidence-report.pdf");
   };
 
   if (!authenticated) {
     return (
       <main className="login-shell">
-        <section className="login-panel">
-          <div className="brand-row">
-            <ShieldCheck size={34} />
-            <div>
-              <span>IoMT SIEM</span>
-              <strong>Research Control Console</strong>
+        <section className="login-stage">
+          <article className="login-hero">
+            <div className="brand-row login-brand">
+              <ShieldCheck size={36} />
+              <div>
+                <span>IoMT SIEM Research Platform</span>
+                <strong>Clinical Cyber Defense Console</strong>
+              </div>
             </div>
-          </div>
-          <div className="login-copy">
-            <h1>Admin demo access</h1>
-            <p>Medical telemetry, AI prioritization, correlation, response tracking, and evidence reporting in one supervised dashboard.</p>
-          </div>
-          <button className="primary-action" onClick={() => setAuthenticated(true)}>
-            <BadgeCheck size={18} />
-            Continue as Admin
-          </button>
+            <div className="login-copy">
+              <p className="login-kicker">Integrated academic demo environment</p>
+              <h1>Security monitoring built for connected medical devices.</h1>
+              <p>
+                Simulated telemetry, AI threat detection, alert prioritization, live correlation,
+                automated response, and evidence reporting in one supervised control surface.
+              </p>
+            </div>
+            <div className="login-highlights">
+              <div className="login-highlight-card">
+                <Stethoscope size={18} />
+                <div>
+                  <strong>4 medical sensors</strong>
+                  <span>Heart rate, ECG, temperature, and fall detection telemetry</span>
+                </div>
+              </div>
+              <div className="login-highlight-card">
+                <ShieldAlert size={18} />
+                <div>
+                  <strong>AI threat pipeline</strong>
+                  <span>Random Forest, Isolation Forest, prioritization, and live validation</span>
+                </div>
+              </div>
+              <div className="login-highlight-card">
+                <Database size={18} />
+                <div>
+                  <strong>Operational traceability</strong>
+                  <span>MongoDB logging, device states, prediction history, and responses</span>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <aside className="login-panel">
+            <div className="login-panel-top">
+              <span className="login-chip">Research Control Console</span>
+              <strong>Admin demo access</strong>
+              <p>
+                Enter the supervised dashboard to inspect telemetry, validate incidents, review
+                model decisions, and manage isolation or quarantine actions.
+              </p>
+            </div>
+
+            <div className="login-metrics">
+              <div className="login-metric">
+                <Activity size={18} />
+                <div>
+                  <strong>Live pipeline</strong>
+                  <span>Telemetry to response in a single workflow</span>
+                </div>
+              </div>
+              <div className="login-metric">
+                <Network size={18} />
+                <div>
+                  <strong>Correlation aware</strong>
+                  <span>Context validation before high-impact actions</span>
+                </div>
+              </div>
+              <div className="login-metric">
+                <ClipboardList size={18} />
+                <div>
+                  <strong>Evidence ready</strong>
+                  <span>Prediction history, reports, and operator notices</span>
+                </div>
+              </div>
+            </div>
+
+            <button className="primary-action login-cta" onClick={() => setAuthenticated(true)}>
+              <BadgeCheck size={18} />
+              Launch Admin Console
+            </button>
+
+            <div className="login-footer-note">
+              <span>Demo mode</span>
+              <p>Backend-controlled simulation with support for future real-sensor integration.</p>
+            </div>
+          </aside>
         </section>
       </main>
     );
@@ -1165,13 +1395,40 @@ function ReportsView({ summary, latest, onPdf, onCsv, onJson }: { summary: Summa
       </div>
       <section className="panel wide">
         <div className="panel-heading">
-          <h2>Report downloads</h2>
-          <span>Academic viva evidence pack</span>
+          <h2>Downloadable evidence pack</h2>
+          <span>Structured exports for demo, viva, and review</span>
         </div>
-        <div className="download-row">
-          <button onClick={onPdf}><FileDown size={16} /> PDF report</button>
-          <button onClick={onCsv}><Table2 size={16} /> CSV evidence</button>
-          <button onClick={onJson}><Archive size={16} /> JSON summary</button>
+        <div className="history-stack">
+          <article className="history-card">
+            <div>
+              <span className="badge critical">PDF brief</span>
+            </div>
+            <strong>Executive incident report</strong>
+            <p>Formatted evidence brief with system posture, severity distribution, latest validation outcome, restriction status, and PHI-redacted evidence.</p>
+            <div className="download-row">
+              <button onClick={onPdf}><FileDown size={16} /> Download PDF report</button>
+            </div>
+          </article>
+          <article className="history-card">
+            <div>
+              <span className="badge medium">CSV evidence</span>
+            </div>
+            <strong>Telemetry evidence extract</strong>
+            <p>Recent telemetry rows with protocol, attack flags, device state, and current network status for audit or spreadsheet analysis.</p>
+            <div className="download-row">
+              <button onClick={onCsv}><Table2 size={16} /> Download CSV evidence</button>
+            </div>
+          </article>
+          <article className="history-card">
+            <div>
+              <span className="badge low">JSON summary</span>
+            </div>
+            <strong>Machine-readable report bundle</strong>
+            <p>Structured export containing simulator state, severity counts, active restrictions, recent predictions, and the latest AI analysis block.</p>
+            <div className="download-row">
+              <button onClick={onJson}><Archive size={16} /> Download JSON summary</button>
+            </div>
+          </article>
         </div>
       </section>
       <PrivacyView latest={latest} />

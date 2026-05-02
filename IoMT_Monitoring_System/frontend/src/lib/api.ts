@@ -137,6 +137,29 @@ export type PredictionRecord = TelemetryItem & {
   device_state?: string;
 };
 
+export type ReportPayload = {
+  generated_at: string;
+  total_logs: number;
+  attack_logs: number;
+  total_responses: number;
+  active_devices: number;
+  model_accuracy: string;
+  alert_reduction: string;
+  notes: string[];
+  mode: string;
+  severity_counts: Record<"CRITICAL" | "HIGH" | "MEDIUM" | "LOW", number>;
+  simulator?: SimulatorStatus;
+  simulation_config?: SimulationConfig;
+  active_restrictions?: {
+    count: number;
+    items: TelemetryItem[];
+  };
+  recent_predictions?: PredictionRecord[];
+  latest_event?: TelemetryItem | null;
+  latest_analysis?: AnalyzeResult | null;
+  redacted_evidence?: string;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -180,5 +203,5 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ device_id, action, reason, requested_by: "admin-demo" })
     }),
-  report: () => request<Record<string, unknown>>("/reports/summary")
+  report: () => request<ReportPayload>("/reports/summary")
 };

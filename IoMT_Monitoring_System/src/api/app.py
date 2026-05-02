@@ -991,9 +991,32 @@ def report_summary():
         ],
     )
     payload = json_safe(report.__dict__)
+    payload["mode"] = summary["mode"]
+    payload["severity_counts"] = summary["severityCounts"]
+    payload["simulator"] = json_safe(simulator().status())
+    payload["simulation_config"] = sim_config_store().get().to_dict()
+    payload["active_restrictions"] = {"count": 0, "items": []}
+    payload["recent_predictions"] = []
+    payload["latest_event"] = None
+    payload["latest_analysis"] = None
+
+    if _mongo_available():
+        restricted_states = [
+            item for item in _state_repo().list_all(20)
+            if str(item.get("state", "")) in {"Temporarily Isolated", "Quarantined"}
+        ]
+        payload["active_restrictions"] = {
+            "count": len(restricted_states),
+            "items": json_safe(restricted_states[:8]),
+        }
+        payload["recent_predictions"] = json_safe(_prediction_repo().latest(5))
+
     latest = telemetry(1)["items"]
     if latest:
-        payload["redacted_evidence"] = _analyze(latest[0])["privacy"]["redacted_text"]
+        payload["latest_event"] = json_safe(latest[0])
+        latest_analysis = _analyze(latest[0])
+        payload["latest_analysis"] = json_safe(latest_analysis)
+        payload["redacted_evidence"] = latest_analysis["privacy"]["redacted_text"]
     else:
         payload["redacted_evidence"] = "No telemetry evidence available."
     return payload
