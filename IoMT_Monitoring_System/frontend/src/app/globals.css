@@ -1103,6 +1103,36 @@ button {
   overflow-wrap: anywhere;
 }
 
+.correlation-log-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.correlation-log-card {
+  border-left-width: 5px;
+}
+
+.correlation-log-card.critical {
+  border-left-color: var(--red);
+  background:
+    linear-gradient(135deg, rgba(194, 65, 54, 0.08), transparent 42%),
+    var(--surface);
+}
+
+.correlation-log-card.medium {
+  border-left-color: var(--amber);
+  background:
+    linear-gradient(135deg, rgba(183, 121, 31, 0.08), transparent 42%),
+    var(--surface);
+}
+
+.correlation-log-card.green {
+  border-left-color: var(--green);
+  background:
+    linear-gradient(135deg, rgba(24, 115, 93, 0.08), transparent 42%),
+    var(--surface);
+}
+
 .attack-layout {
   display: flex;
   justify-content: space-between;

@@ -129,6 +129,34 @@ function detailValue(valueText: unknown, fallback = "-") {
   return String(valueText);
 }
 
+function temporaryStatusLabel(action: unknown, predictedAttack = false) {
+  const normalized = String(action ?? "").toLowerCase();
+  if (["quarantine", "shutdown"].includes(normalized)) return "Temporarily isolated";
+  if (["temporary_isolate", "isolate"].includes(normalized)) return "Temporarily isolated";
+  if (["restore", "rollback", "false_positive"].includes(normalized)) return "Monitor";
+  if (normalized === "monitor" || normalized === "log_and_monitor") return "Monitor";
+  return predictedAttack ? "Temporarily isolated" : "Monitor";
+}
+
+function validationStatusLabel(item: Pick<PredictionRecord, "confirmed_real_attack" | "correlation_verdict" | "decision_action" | "predicted_attack">) {
+  if (item.confirmed_real_attack) return "Confirmed attack";
+  const verdict = String(item.correlation_verdict ?? "").toLowerCase();
+  const action = String(item.decision_action ?? "").toLowerCase();
+  if (["restore", "rollback", "false_positive"].includes(action)) return "Validated false positive";
+  if (verdict === "confirmed_attack") return "Confirmed attack";
+  if (verdict === "suspicious") return "Pending review";
+  if (Boolean(item.predicted_attack)) return "Pending validation";
+  return "Normal traffic";
+}
+
+function correlationActionLabel(action: unknown, deviceState?: unknown) {
+  const normalizedAction = String(action ?? "").toLowerCase();
+  const normalizedState = String(deviceState ?? "").toLowerCase();
+  if (["quarantine", "shutdown"].includes(normalizedAction) || normalizedState === "quarantined") return "Quarantine";
+  if (["temporary_isolate", "isolate"].includes(normalizedAction) || normalizedState === "temporarily isolated") return "Temporary isolate";
+  return "Monitor";
+}
+
 function tickKey(result: TickResult) {
   return [
     value(result.event, "timestamp", ""),
@@ -726,6 +754,7 @@ export default function Home() {
         {active === "correlation" && (
           <section className="view-stack">
             <LiveCorrelationView latest={latest} />
+            <CorrelationSensorLogs sensors={sensors} predictions={predictions} deviceStates={deviceStates} />
             <DataTable title="DBSCAN incident correlation output" items={incidents} columns={["incident_id", "alert_count", "attack_types", "wards_affected", "incident_priority", "life_support_involved"]} />
           </section>
         )}
@@ -1105,6 +1134,143 @@ function LiveCorrelationView({ latest }: { latest?: TickResult }) {
   );
 }
 
+function CorrelationSensorLogs({
+  sensors,
+  predictions,
+  deviceStates
+}: {
+  sensors: SensorProfile[];
+  predictions: PredictionRecord[];
+  deviceStates: TelemetryItem[];
+}) {
+  const devices = sensors.length
+    ? sensors
+    : Array.from(
+        new Map(
+          predictions
+            .filter((item) => item.device_id)
+            .map((item) => [
+              String(item.device_id),
+              {
+                device_id: String(item.device_id),
+                device_type: String(item.device_type ?? item.device_id),
+                ward: String(item.ward ?? "-"),
+                life_support: false,
+                criticality_tier: 0,
+                protocol: "-",
+                src_ip: "-",
+                sensor_source: "history"
+              } satisfies SensorProfile
+            ])
+        ).values()
+      );
+
+  const latestPredictionByDevice = new Map<string, PredictionRecord>();
+  predictions.forEach((item) => {
+    const deviceId = String(item.device_id ?? "");
+    if (!deviceId || latestPredictionByDevice.has(deviceId)) return;
+    latestPredictionByDevice.set(deviceId, item);
+  });
+
+  const latestStateByDevice = new Map<string, TelemetryItem>();
+  deviceStates.forEach((item) => {
+    const deviceId = String(item.device_id ?? "");
+    if (!deviceId || latestStateByDevice.has(deviceId)) return;
+    latestStateByDevice.set(deviceId, item);
+  });
+
+  return (
+    <section className="panel wide">
+      <div className="panel-heading">
+        <div>
+          <h2>Per-sensor correlation logs</h2>
+          <span>How correlation validates each sensor case before the response layer decides monitor, temporary isolation, or quarantine</span>
+        </div>
+        <span>{devices.length} sensors</span>
+      </div>
+      {devices.length ? (
+        <div className="correlation-log-grid">
+          {devices.map((sensor) => {
+            const prediction = latestPredictionByDevice.get(String(sensor.device_id));
+            const deviceState = latestStateByDevice.get(String(sensor.device_id));
+            const recommendedAction = correlationActionLabel(prediction?.decision_action, deviceState?.state ?? prediction?.device_state);
+            const validationStatus = prediction
+              ? validationStatusLabel(prediction)
+              : "No recent correlated event";
+            const cardTone =
+              recommendedAction === "Quarantine"
+                ? "critical"
+                : recommendedAction === "Temporary isolate"
+                  ? "medium"
+                  : "green";
+
+            return (
+              <article className={`history-card correlation-log-card ${cardTone}`} key={sensor.device_id}>
+                <div>
+                  <span className={recommendedAction === "Quarantine" ? "badge critical" : recommendedAction === "Temporary isolate" ? "badge medium" : "badge low"}>
+                    {recommendedAction}
+                  </span>
+                  <span className={prediction?.correlation_verdict === "confirmed_attack" ? "badge critical" : "badge low"}>
+                    {detailValue(prediction?.correlation_verdict, "no recent verdict")}
+                  </span>
+                </div>
+                <strong>{sensor.device_type} / {sensor.device_id}</strong>
+                <p>
+                  {prediction
+                    ? `Correlation checked the recent evidence for ${sensor.device_id} and currently supports ${recommendedAction.toLowerCase()} based on attack likelihood, severity, and device context.`
+                    : `No recent analyzed event is available for ${sensor.device_id}. The sensor remains in normal monitoring until a new correlated case is produced.`}
+                </p>
+                <div className="history-detail-grid">
+                  <div className="history-detail-item">
+                    <span>Time</span>
+                    <b>{prediction ? displayValue(prediction, "created_at") : "-"}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Ward</span>
+                    <b>{detailValue(prediction?.ward ?? sensor.ward)}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Attack type</span>
+                    <b>{detailValue(prediction?.attack_type, "normal")}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Validation status</span>
+                    <b>{validationStatus}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Correlation score</span>
+                    <b>{prediction?.correlation_score !== undefined ? `${Math.round(Number(prediction.correlation_score) * 100) / 100}` : "-"}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Recommended handling</span>
+                    <b>{recommendedAction}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Current device state</span>
+                    <b>{detailValue(deviceState?.state ?? prediction?.device_state, "Normal")}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Reason</span>
+                    <b>
+                      {recommendedAction === "Quarantine"
+                        ? "Escalated because correlation supports a confirmed or critical attack case."
+                        : recommendedAction === "Temporary isolate"
+                          ? "Restricted while the suspicious case remains under validation."
+                          : "Recent evidence does not justify escalation, so monitoring continues."}
+                    </b>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="empty-state">No sensors are available yet. Start the simulator or connect live telemetry to populate per-sensor correlation logs.</div>
+      )}
+    </section>
+  );
+}
+
 function PriorityView({ latest, summary, predictions }: { latest?: TickResult; summary: Summary | null; predictions: PredictionRecord[] }) {
   return (
     <section className="view-stack">
@@ -1188,6 +1354,16 @@ function PriorityHistory({ predictions, latest }: { predictions: PredictionRecor
 
 function AttackView({ latest, predictions }: { latest?: TickResult; predictions: PredictionRecord[] }) {
   const analysis = latest?.analysis;
+  const temporaryStatus = analysis
+    ? temporaryStatusLabel(analysis.decision.action, analysis.attack_prediction.predicted_attack)
+    : "Monitor";
+  const validationStatus = analysis
+    ? (analysis.correlation.confirmed_real_attack
+        ? "Confirmed attack"
+        : analysis.attack_prediction.predicted_attack
+          ? "Pending validation"
+          : "Normal traffic")
+    : "Normal traffic";
   return (
     <section className="view-stack">
       {latest && analysis && (
@@ -1203,16 +1379,20 @@ function AttackView({ latest, predictions }: { latest?: TickResult; predictions:
               <p>{analysis.attack_prediction.reason}</p>
             </div>
             <div className="decision-grid compact">
+              <span>Predicted threat</span>
+              <strong>{analysis.attack_prediction.predicted_attack ? "Yes" : "No"}</strong>
               <span>RF confidence</span>
               <strong>{Math.round(analysis.attack_prediction.confidence * 100)}%</strong>
               <span>Risk score</span>
               <strong>{Math.round(analysis.attack_prediction.risk_score * 100)}%</strong>
-              <span>Anomaly</span>
+              <span>Anomaly flag</span>
               <strong>{analysis.attack_prediction.anomaly_flag}</strong>
-              <span>Real attack</span>
-              <strong>{analysis.correlation.confirmed_real_attack ? "Yes" : "No"}</strong>
-              <span>Critical</span>
-              <strong>{analysis.correlation.confirmed_critical ? "Confirmed" : "Not confirmed"}</strong>
+              <span>Temporary status</span>
+              <strong>{temporaryStatus}</strong>
+              <span>Validation status</span>
+              <strong>{validationStatus}</strong>
+              <span>Correlation status</span>
+              <strong>{detailValue(analysis.live_correlation.recommended_verdict)}</strong>
             </div>
           </div>
         </section>
@@ -1267,20 +1447,20 @@ function AttackHistory({ predictions }: { predictions: PredictionRecord[] }) {
                     <b>{risk}%</b>
                   </div>
                   <div className="history-detail-item">
-                    <span>Real attack</span>
-                    <b>{item.confirmed_real_attack ? "Yes" : "No"}</b>
+                    <span>Predicted threat</span>
+                    <b>{predictedAttack ? "Yes" : "No"}</b>
                   </div>
                   <div className="history-detail-item">
-                    <span>Critical</span>
-                    <b>{item.confirmed_critical ? "Confirmed" : "Not confirmed"}</b>
+                    <span>Temporary status</span>
+                    <b>{temporaryStatusLabel(item.decision_action, predictedAttack)}</b>
                   </div>
                   <div className="history-detail-item">
-                    <span>Correlation verdict</span>
+                    <span>Validation status</span>
+                    <b>{validationStatusLabel(item)}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Correlation status</span>
                     <b>{detailValue(item.correlation_verdict)}</b>
-                  </div>
-                  <div className="history-detail-item">
-                    <span>Final action</span>
-                    <b>{actionLabel(detailValue(item.decision_action, "monitor"))}</b>
                   </div>
                 </div>
               </article>
