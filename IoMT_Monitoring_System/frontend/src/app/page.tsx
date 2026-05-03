@@ -129,6 +129,16 @@ function detailValue(valueText: unknown, fallback = "-") {
   return String(valueText);
 }
 
+function responseOrigin(item: TelemetryItem) {
+  const requestedBy = String(item.requested_by ?? "").toLowerCase();
+  const metadata = item.metadata as Record<string, unknown> | undefined;
+  const manualFlag = metadata?.manual_dashboard_action;
+  if (manualFlag === true || requestedBy === "admin-demo" || requestedBy === "dashboard") {
+    return "Manual";
+  }
+  return "Automatic";
+}
+
 function temporaryStatusLabel(action: unknown, predictedAttack = false) {
   const normalized = String(action ?? "").toLowerCase();
   if (["quarantine", "shutdown"].includes(normalized)) return "Temporarily isolated";
@@ -193,6 +203,10 @@ export default function Home() {
   const latest = feed[0];
   const latestAnalysis: AnalyzeResult | undefined = latest?.analysis ?? undefined;
   const simulatorRunning = simulatorStatus?.running ?? false;
+  const quarantinedWithOrigin = quarantined.map((item) => ({
+    ...item,
+    change_origin: responseOrigin(item),
+  }));
 
   const loadAll = async () => {
     setError("");
@@ -775,7 +789,7 @@ export default function Home() {
           <section className="view-stack">
             <DataTable title="Device state registry" items={deviceStates} columns={["updated_at", "device_id", "device_type", "state", "last_action", "reason"]} />
             <OperatorNoticeList states={deviceStates} />
-            <DataTable title="Isolated and quarantined response commands" items={quarantined} columns={["created_at", "device_id", "action", "status", "requested_by"]} />
+            <DataTable title="Isolated and quarantined response commands" items={quarantinedWithOrigin} columns={["created_at", "device_id", "action", "status", "change_origin", "requested_by"]} />
           </section>
         )}
         {active === "reports" && (
@@ -1545,6 +1559,10 @@ function ResponseView({
       }));
   const selectedState = deviceStates.find((item) => value(item, "device_id", "") === selectedDevice);
   const selectedNotice = operatorNoticeForState(selectedState);
+  const responseHistory = responses.map((item) => ({
+    ...item,
+    change_origin: responseOrigin(item),
+  }));
   return (
     <section className="view-stack">
       <section className="panel wide">
@@ -1580,7 +1598,7 @@ function ResponseView({
         </div>
       </section>
       <ARResponseSummary latest={latest} />
-      <DataTable title="Response action history" items={responses} columns={["created_at", "device_id", "action", "status", "requested_by"]} />
+      <DataTable title="Response action history" items={responseHistory} columns={["created_at", "device_id", "action", "status", "change_origin", "requested_by"]} />
     </section>
   );
 }
