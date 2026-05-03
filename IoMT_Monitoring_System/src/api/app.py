@@ -560,12 +560,14 @@ def dashboard_summary():
     attack_logs = 0
     responses = 0
     devices: List[str] = []
+    severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
     if mongo:
         sensor_repo, response_repo, _ = _repos()
         total_logs = sensor_repo.count()
         attack_logs = sensor_repo.attack_count()
         responses = response_repo.count()
         devices = sensor_repo.distinct_devices()
+        severity_counts = _prediction_repo().priority_counts()
     else:
         data = _fallback_telemetry(5000)
         total_logs = len(data)
@@ -584,7 +586,7 @@ def dashboard_summary():
         "incidentGroups": len(grouped),
         "modelAccuracy": "100.00%" if "100.00%" in training_summary else "available",
         "alertReduction": "94.8%" if "94.8%" in grouping_summary else "available",
-        "severityCounts": _severity_counts(grouped),
+        "severityCounts": severity_counts if mongo else _severity_counts(grouped),
         "devices": devices[:20],
     }
 

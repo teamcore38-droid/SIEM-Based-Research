@@ -1272,11 +1272,12 @@ function CorrelationSensorLogs({
 }
 
 function PriorityView({ latest, summary, predictions }: { latest?: TickResult; summary: Summary | null; predictions: PredictionRecord[] }) {
+  const priorityMetricDetail = summary?.mode === "mongodb" ? "live MongoDB priority count" : "incident priority count";
   return (
     <section className="view-stack">
       <div className="metric-grid">
         {severityOrder.map((level) => (
-          <Metric key={level} label={level} value={summary?.severityCounts[level] ?? 0} detail="incident priority count" tone={level.toLowerCase()} />
+          <Metric key={level} label={level} value={summary?.severityCounts[level] ?? 0} detail={priorityMetricDetail} tone={level.toLowerCase()} />
         ))}
       </div>
       <PriorityHistory predictions={predictions} latest={latest} />

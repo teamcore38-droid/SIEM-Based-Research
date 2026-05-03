@@ -75,6 +75,18 @@ class PredictionRepository:
     def latest(self, limit: int = 10) -> List[Dict[str, Any]]:
         return list(self.collection.find().sort("created_at", -1).limit(limit))
 
+    def priority_counts(self) -> Dict[str, int]:
+        pipeline = [
+            {"$match": {"priority": {"$exists": True, "$ne": None}}},
+            {"$group": {"_id": {"$toUpper": "$priority"}, "count": {"$sum": 1}}},
+        ]
+        counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0}
+        for row in self.collection.aggregate(pipeline):
+            priority = str(row.get("_id", "")).upper()
+            if priority in counts:
+                counts[priority] = int(row.get("count", 0))
+        return counts
+
 
 class DeviceStateRepository:
     def __init__(self):
