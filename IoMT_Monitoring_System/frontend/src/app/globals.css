@@ -1069,25 +1069,38 @@ button {
   margin: 0;
 }
 
-.history-grid {
+.history-detail-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   border-top: 1px solid var(--line);
-  padding-top: 12px;
+  padding-top: 14px;
 }
 
-.history-grid span {
+.history-detail-item {
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.history-detail-item span {
   display: block;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.history-grid b {
+.history-detail-item b {
   display: block;
-  margin-top: 4px;
-  font-size: 13px;
+  margin-top: 7px;
+  font-size: 15px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .attack-layout {
@@ -1191,7 +1204,7 @@ tr:hover td {
 
   .metric-grid,
   .flow-row,
-  .history-grid,
+  .history-detail-grid,
   .split-layout {
     grid-template-columns: 1fr 1fr;
   }
@@ -1233,7 +1246,7 @@ tr:hover td {
 
   .metric-grid,
   .flow-row,
-  .history-grid,
+  .history-detail-grid,
   .split-layout,
   .sidebar nav {
     grid-template-columns: 1fr;
