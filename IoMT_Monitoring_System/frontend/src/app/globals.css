@@ -130,6 +130,41 @@ button {
   color: var(--green);
 }
 
+.product-mark-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: #f7faf8;
+}
+
+.product-mark-button:hover,
+.product-mark-button:focus-visible {
+  opacity: 0.92;
+}
+
+.brand-logo {
+  display: block;
+  object-fit: contain;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 24px rgba(23, 27, 25, 0.14);
+}
+
+.brand-logo-lg {
+  width: 108px;
+  height: 108px;
+}
+
+.brand-logo-sm {
+  width: 56px;
+  height: 56px;
+  background: transparent;
+  object-fit: cover;
+  border-radius: 14px;
+}
+
 .brand-row span,
 .product-mark span,
 .eyebrow,
@@ -147,8 +182,16 @@ button {
   font-size: 18px;
 }
 
+.product-mark strong {
+  color: #ffffff;
+}
+
+.product-mark span {
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .login-brand {
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
 }
 
@@ -180,7 +223,7 @@ button {
 
 .login-copy h1 {
   margin: 0 0 14px;
-  max-width: 12ch;
+  max-width: 14ch;
   font-size: clamp(3.2rem, 5vw, 5.4rem);
   line-height: 0.95;
   letter-spacing: -0.05em;

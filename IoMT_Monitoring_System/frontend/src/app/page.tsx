@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
+import Image from "next/image";
 import {
   Activity,
   AlertTriangle,
@@ -15,7 +16,6 @@ import {
   FileDown,
   Gauge,
   Lock,
-  MonitorCheck,
   Network,
   Play,
   RefreshCw,
@@ -27,6 +27,12 @@ import {
   Table2
 } from "lucide-react";
 import { AnalyzeResult, PredictionRecord, ReportPayload, SensorProfile, SimulationConfig, SimulatorStatus, Summary, TelemetryItem, TickResult, api } from "@/lib/api";
+
+const SYSTEM_NAME = "MedGuard X";
+const SYSTEM_TAGLINE = "Security Operations";
+const SYSTEM_DESCRIPTION = "Real-time security monitoring for connected medical devices.";
+const LOGIN_LOGO_SRC = "/medguard-x-logo.jpeg";
+const SIDEBAR_LOGO_SRC = "/medguard-x-logo-icon.png";
 
 const views = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
@@ -345,7 +351,7 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "iomt-siem-report.json";
+    link.download = "medguard-x-report.json";
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -374,7 +380,7 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "iomt-siem-telemetry-evidence.csv";
+    link.download = "medguard-x-telemetry-evidence.csv";
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -465,7 +471,7 @@ export default function Home() {
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
-    doc.text("IoMT SIEM Evidence Report", margin, 18);
+    doc.text("MedGuard X Evidence Report", margin, 18);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.text("Research monitoring, AI validation, and operational response summary", margin, 27);
@@ -537,7 +543,7 @@ export default function Home() {
     addSectionTitle("Method Notes");
     addBulletList(report.notes ?? []);
 
-    doc.save("iomt-siem-evidence-report.pdf");
+    doc.save("medguard-x-evidence-report.pdf");
   };
 
   if (!authenticated) {
@@ -546,18 +552,26 @@ export default function Home() {
         <section className="login-stage">
           <article className="login-hero">
             <div className="brand-row login-brand">
-              <ShieldCheck size={36} />
+              <Image
+                  src={LOGIN_LOGO_SRC}
+                alt={`${SYSTEM_NAME} logo`}
+                width={108}
+                height={108}
+                className="brand-logo brand-logo-lg"
+                priority
+              />
               <div>
-                <span>IoMT SIEM Research Platform</span>
-                <strong>Clinical Cyber Defense Console</strong>
+                <span>{SYSTEM_NAME}</span>
+                <strong>{SYSTEM_TAGLINE}</strong>
               </div>
             </div>
             <div className="login-copy">
-              <p className="login-kicker">Integrated academic demo environment</p>
-              <h1>Security monitoring built for connected medical devices.</h1>
+              <p className="login-kicker">{SYSTEM_NAME} demo environment</p>
+              <h1>{SYSTEM_NAME}</h1>
               <p>
-                Simulated telemetry, AI threat detection, alert prioritization, live correlation,
-                automated response, and evidence reporting in one supervised control surface.
+                {SYSTEM_DESCRIPTION} Simulated telemetry, AI threat detection, alert prioritization,
+                live correlation, automated response, and evidence reporting in one supervised
+                control surface.
               </p>
             </div>
             <div className="login-highlights">
@@ -637,13 +651,24 @@ export default function Home() {
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <div className="product-mark">
-          <MonitorCheck size={28} />
+        <button
+          type="button"
+          className="product-mark product-mark-button"
+          onClick={() => setActive("dashboard")}
+          aria-label="Go to dashboard"
+        >
+          <Image
+            src={SIDEBAR_LOGO_SRC}
+            alt={`${SYSTEM_NAME} logo`}
+            width={56}
+            height={56}
+            className="brand-logo brand-logo-sm"
+          />
           <div>
-            <strong>IoMT SIEM</strong>
+            <strong>{SYSTEM_NAME}</strong>
             <span>Admin demo</span>
           </div>
-        </div>
+        </button>
         <nav>
           {views.map((view) => {
             const Icon = view.icon;
@@ -983,7 +1008,7 @@ function ArchitectureDemoView({
       <section className="architecture-hero">
         <div>
           <span className="eyebrow">Viva diagram mode</span>
-          <h2>IoMT cybersecurity monitoring architecture</h2>
+          <h2>MedGuard X cybersecurity monitoring architecture</h2>
           <p>
             This view maps your planned diagram into the running system: simulated medical sensors publish logs, AI models analyze
             severity and attacks, correlation validates the decision, and the response layer records isolation or quarantine actions.

@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "IoMT SIEM Dashboard",
-  description: "Integrated IoMT cybersecurity monitoring dashboard"
+  title: "MedGuard X",
+  description: "MedGuard X cybersecurity monitoring dashboard"
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
