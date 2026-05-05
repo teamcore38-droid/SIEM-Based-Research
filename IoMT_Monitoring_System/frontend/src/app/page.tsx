@@ -140,7 +140,23 @@ function responseOrigin(item: TelemetryItem) {
   const requestedBy = String(item.requested_by ?? "").toLowerCase();
   const metadata = item.metadata as Record<string, unknown> | undefined;
   const manualFlag = metadata?.manual_dashboard_action;
-  if (manualFlag === true || requestedBy === "admin-demo" || requestedBy === "dashboard") {
+  const stage = String(metadata?.stage ?? "").toLowerCase();
+  const hasAutomationSignals =
+    requestedBy === "system" ||
+    requestedBy === "backend" ||
+    requestedBy === "pipeline" ||
+    requestedBy === "aice" ||
+    stage.length > 0 ||
+    metadata?.simulated === true ||
+    metadata?.analysis !== undefined ||
+    metadata?.ars_response !== undefined;
+  if (manualFlag === true) {
+    return "Manual";
+  }
+  if (hasAutomationSignals) {
+    return "Automatic";
+  }
+  if (requestedBy === "admin-demo" || requestedBy === "dashboard") {
     return "Manual";
   }
   return "Automatic";
@@ -206,6 +222,8 @@ export default function Home() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [groupingRefreshing, setGroupingRefreshing] = useState(false);
+  const [groupingMessage, setGroupingMessage] = useState("");
 
   const latest = feed[0];
   const latestAnalysis: AnalyzeResult | undefined = latest?.analysis ?? undefined;
@@ -260,6 +278,22 @@ export default function Home() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to reach backend API");
+    }
+  };
+
+  const refreshAlertGrouping = async () => {
+    setGroupingRefreshing(true);
+    setError("");
+    setGroupingMessage("");
+    try {
+      const result = await api.refreshAlertGrouping();
+      setGroupingMessage(result.message);
+      await loadAll();
+      setActive("alert-grouping");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to refresh alert grouping");
+    } finally {
+      setGroupingRefreshing(false);
     }
   };
 
@@ -790,7 +824,15 @@ export default function Home() {
         {active === "telemetry" && <DataTable title="Live telemetry" items={telemetry} columns={["timestamp", "device_id", "device_type", "ward", "heart_rate_bpm_pulse", "temperature_celsius", "attack_type", "device_state", "network_status"]} />}
         {active === "logs" && <DataTable title="MongoDB sensor_logs collection" items={logs} columns={["timestamp", "device_id", "device_type", "ward", "protocol", "src_ip", "dst_port", "attack_type"]} />}
         {active === "priority" && <PriorityView latest={latest} summary={summary} predictions={predictions} />}
-        {active === "alert-grouping" && <AlertGroupingView summary={summary} incidents={incidents} />}
+        {active === "alert-grouping" && (
+          <AlertGroupingView
+            summary={summary}
+            incidents={incidents}
+            onRefresh={refreshAlertGrouping}
+            refreshing={groupingRefreshing}
+            message={groupingMessage}
+          />
+        )}
         {active === "attack" && <AttackView latest={latest} predictions={predictions} />}
         {active === "correlation" && (
           <section className="view-stack">
@@ -1328,10 +1370,16 @@ function PriorityView({ latest, summary, predictions }: { latest?: TickResult; s
 
 function AlertGroupingView({
   summary,
-  incidents
+  incidents,
+  onRefresh,
+  refreshing,
+  message
 }: {
   summary: Summary | null;
   incidents: AlertIncidentRecord[];
+  onRefresh: () => void;
+  refreshing: boolean;
+  message: string;
 }) {
   const groupedAlerts = incidents.reduce((total, incident) => total + Number(incident.alert_count ?? 0), 0);
   const multiAlertGroups = incidents.filter((incident) => Number(incident.alert_count ?? 0) > 1).length;
@@ -1357,9 +1405,17 @@ function AlertGroupingView({
         <div className="panel-heading">
           <div>
             <h2>Alert grouping incidents</h2>
-            <span>Read-only output from /incidents using precomputed DBSCAN clusters</span>
+            <span>{message || "Read-only output from /incidents using precomputed DBSCAN clusters"}</span>
           </div>
-          <span>{multiAlertGroups} multi-alert clusters</span>
+          <div className="download-row">
+            <button className="grouping-refresh-button" onClick={onRefresh} disabled={refreshing} type="button">
+              <RefreshCw size={16} />
+              {refreshing ? "Refreshing..." : "Refresh grouping"}
+            </button>
+          </div>
+        </div>
+        <div className="metric-grid" style={{ marginBottom: 20 }}>
+          <Metric label="Multi-alert clusters" value={multiAlertGroups} detail="clusters containing more than one alert" tone="blue" />
         </div>
         {incidents.length ? (
           <div className="history-stack">

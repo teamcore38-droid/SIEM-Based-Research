@@ -112,7 +112,7 @@ class ControlCommand:
     device_id: str
     action: str
     status: str = "queued"
-    requested_by: str = "dashboard"
+    requested_by: str = "system"
     created_at: str = field(default_factory=utc_now_iso)
     metadata: Dict[str, Any] = field(default_factory=dict)
 

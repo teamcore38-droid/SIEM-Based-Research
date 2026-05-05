@@ -463,6 +463,31 @@ button {
   color: white;
 }
 
+.grouping-refresh-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.grouping-refresh-button:hover,
+.grouping-refresh-button:focus-visible {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.grouping-refresh-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
 .error-banner {
   border: 1px solid rgba(194, 65, 54, 0.35);
   background: rgba(194, 65, 54, 0.08);

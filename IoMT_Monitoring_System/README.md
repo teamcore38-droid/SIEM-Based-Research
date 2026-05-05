@@ -151,6 +151,23 @@ Replay the existing raw CSVs into MongoDB:
    python scripts/replay_existing_data.py
    ```
 
+### Historical Alert Grouping From MongoDB
+
+Run the end-to-end export-and-group workflow with one command:
+
+   ```bash
+   python scripts/run_alert_grouping.py
+   ```
+
+If you want to run the steps manually instead:
+
+   ```bash
+   python scripts/export_grouping_input.py
+   python src/monitoring/04_alert_grouping.py
+   ```
+
+The exporter writes `master_dataset.csv` to the alert module's `data/raw/` folder so the existing grouping script can process historical data without changing the live AI pipeline.
+
 ### Frontend Preview Build
 
    ```bash

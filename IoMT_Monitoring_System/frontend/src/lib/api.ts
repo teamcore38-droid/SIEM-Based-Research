@@ -175,6 +175,12 @@ export type ReportPayload = {
   redacted_evidence?: string;
 };
 
+export type AlertGroupingRefreshResult = {
+  status: string;
+  message: string;
+  stdout?: string;
+};
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -197,6 +203,7 @@ export const api = {
   sensors: () => request<{ count: number; items: SensorProfile[] }>("/sensors"),
   logs: (limit = 60) => request<{ mode: string; items: TelemetryItem[] }>(`/logs?limit=${limit}`),
   incidents: (limit = 40) => request<{ mode: string; items: AlertIncidentRecord[] }>(`/incidents?limit=${limit}`),
+  refreshAlertGrouping: () => request<AlertGroupingRefreshResult>("/incidents/refresh", { method: "POST" }),
   responses: (limit = 40) => request<{ mode: string; items: TelemetryItem[] }>(`/responses?limit=${limit}`),
   quarantine: (limit = 40) => request<{ mode: string; items: TelemetryItem[] }>(`/quarantine?limit=${limit}`),
   deviceStates: (limit = 100) => request<{ mode: string; items: TelemetryItem[] }>(`/devices/states?limit=${limit}`),

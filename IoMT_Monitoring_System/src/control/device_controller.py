@@ -92,11 +92,18 @@ class DeviceController:
             client.disconnect()
         return True
 
-    def issue(self, device_id: str, action: str, metadata: Optional[Dict[str, Any]] = None) -> ControlCommand:
+    def issue(
+        self,
+        device_id: str,
+        action: str,
+        metadata: Optional[Dict[str, Any]] = None,
+        requested_by: str = "system",
+    ) -> ControlCommand:
         command = ControlCommand(
             command_id=f"CMD-{uuid.uuid4().hex[:8].upper()}",
             device_id=device_id,
             action=action,
+            requested_by=requested_by,
             metadata=metadata or {},
         )
 

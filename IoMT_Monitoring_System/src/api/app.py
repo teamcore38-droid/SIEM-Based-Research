@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 from datetime import datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -177,6 +179,7 @@ def _issue_response_action(
     command = controller.issue(
         device_id,
         action,
+        requested_by="system",
         metadata=_control_metadata(action, {
             **(metadata or {}),
             "reason": reason,
@@ -900,6 +903,35 @@ def incidents(limit: int = 50):
     return {"mode": "precomputed_dbscan", "items": items}
 
 
+def _refresh_alert_grouping() -> Dict[str, Any]:
+    script_path = BASE_DIR / "scripts" / "run_alert_grouping.py"
+    if not script_path.exists():
+        raise HTTPException(status_code=404, detail=f"Alert grouping launcher not found: {script_path}")
+
+    completed = subprocess.run(
+        [sys.executable, str(script_path)],
+        cwd=str(BASE_DIR),
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise HTTPException(
+            status_code=500,
+            detail=completed.stderr.strip() or "Alert grouping refresh failed",
+        )
+
+    return {
+        "status": "ok",
+        "message": "Alert grouping refreshed from stored MongoDB logs.",
+        "stdout": completed.stdout.strip(),
+    }
+
+
+@app.post("/incidents/refresh")
+def refresh_incidents():
+    return _refresh_alert_grouping()
+
+
 @app.get("/incidents/live")
 def live_incident(device_id: str, limit: int = 200):
     document = {"device_id": device_id}
@@ -928,7 +960,12 @@ def response_action(payload: ResponseActionRequest):
     })
     if _mongo_available():
         _, _, controller = _repos()
-        command = controller.issue(payload.device_id, payload.action, metadata=command_payload)
+        command = controller.issue(
+            payload.device_id,
+            payload.action,
+            metadata=command_payload,
+            requested_by=payload.requested_by,
+        )
         state_update = _record_device_state(
             payload.device_id,
             payload.action,
