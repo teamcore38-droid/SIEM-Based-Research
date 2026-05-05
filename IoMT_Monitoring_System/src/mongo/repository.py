@@ -75,6 +75,9 @@ class PredictionRepository:
     def latest(self, limit: int = 10) -> List[Dict[str, Any]]:
         return list(self.collection.find().sort("created_at", -1).limit(limit))
 
+    def count(self) -> int:
+        return self.collection.count_documents({})
+
     def priority_counts(self) -> Dict[str, int]:
         pipeline = [
             {"$match": {"priority": {"$exists": True, "$ne": None}}},

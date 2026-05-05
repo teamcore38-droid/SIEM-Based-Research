@@ -51,6 +51,7 @@ const views = [
 type ViewId = (typeof views)[number]["id"];
 
 const severityOrder = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
+const incidentCategoryOrder = ["critical", "high", "attack", "normal"] as const;
 
 function value(item: TelemetryItem, key: string, fallback = "-") {
   const result = item[key];
@@ -59,7 +60,7 @@ function value(item: TelemetryItem, key: string, fallback = "-") {
 }
 
 function isTimestampKey(key: string) {
-  return key === "timestamp" || key.endsWith("_at");
+  return key === "timestamp" || key.endsWith("_at") || key.endsWith("_timestamp");
 }
 
 function formatLocalDateTime(raw: unknown, fallback = "-") {
@@ -134,6 +135,22 @@ function actionLabel(action?: string) {
 function detailValue(valueText: unknown, fallback = "-") {
   if (valueText === null || valueText === undefined || valueText === "") return fallback;
   return String(valueText);
+}
+
+function normalizeIncidentCategory(value: unknown) {
+  const category = String(value ?? "").toLowerCase();
+  return incidentCategoryOrder.includes(category as (typeof incidentCategoryOrder)[number]) ? category : "normal";
+}
+
+function incidentCategoryLabel(category: string) {
+  return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+function incidentCategoryTone(category: string) {
+  if (category === "critical") return "critical";
+  if (category === "high") return "high";
+  if (category === "attack") return "medium";
+  return "low";
 }
 
 function responseOrigin(item: TelemetryItem) {
@@ -786,7 +803,7 @@ export default function Home() {
             <div className="metric-grid">
               <Metric label="Sensor logs" value={summary?.totalLogs ?? telemetry.length} detail={summary?.mode ?? "loading"} />
               <Metric label="Attack logs" value={summary?.attackLogs ?? 0} detail="AI input candidates" tone="red" />
-              <Metric label="Incident groups" value={summary?.incidentGroups ?? incidents.length} detail="DBSCAN correlation" tone="green" />
+              <Metric label="Incident groups" value={summary?.incidentGroups ?? incidents.length} detail="prediction-derived grouping" tone="green" />
               <Metric label="Model accuracy" value={summary?.modelAccuracy ?? "-"} detail="saved Random Forest" tone="amber" />
             </div>
             <div className="flow-row">
@@ -838,7 +855,7 @@ export default function Home() {
           <section className="view-stack">
             <LiveCorrelationView latest={latest} />
             <CorrelationSensorLogs sensors={sensors} predictions={predictions} deviceStates={deviceStates} />
-            <DataTable title="DBSCAN incident correlation output" items={incidents} columns={["incident_id", "alert_count", "attack_types", "wards_affected", "incident_priority", "life_support_involved"]} />
+            <DataTable title="Prediction incident correlation output" items={incidents} columns={["incident_id", "group_category", "alert_count", "attack_types", "wards_affected", "incident_priority", "life_support_involved"]} />
           </section>
         )}
         {active === "response" && (
@@ -1383,6 +1400,23 @@ function AlertGroupingView({
 }) {
   const groupedAlerts = incidents.reduce((total, incident) => total + Number(incident.alert_count ?? 0), 0);
   const multiAlertGroups = incidents.filter((incident) => Number(incident.alert_count ?? 0) > 1).length;
+  const categoryGroups = useMemo(() => {
+    const buckets = new Map<string, AlertIncidentRecord[]>();
+    incidents.forEach((incident) => {
+      const category = normalizeIncidentCategory(incident.group_category ?? incident.incident_priority);
+      const existing = buckets.get(category) ?? [];
+      existing.push(incident);
+      buckets.set(category, existing);
+    });
+    return incidentCategoryOrder
+      .map((category) => ({
+        category,
+        label: incidentCategoryLabel(category),
+        tone: incidentCategoryTone(category),
+        incidents: buckets.get(category) ?? []
+      }))
+      ;
+  }, [incidents]);
   const affectedWards = new Set(
     incidents.flatMap((incident) =>
       String(incident.wards_affected ?? "")
@@ -1395,9 +1429,9 @@ function AlertGroupingView({
   return (
     <section className="view-stack">
       <div className="metric-grid">
-        <Metric label="Incident groups" value={summary?.incidentGroups ?? incidents.length} detail="precomputed DBSCAN output" tone="green" />
-        <Metric label="Grouped alerts" value={groupedAlerts} detail="alerts assigned to clusters" />
-        <Metric label="Alert reduction" value={summary?.alertReduction ?? "-"} detail="from grouping script" tone="amber" />
+        <Metric label="Incident groups" value={summary?.incidentGroups ?? incidents.length} detail="prediction-derived grouped output" tone="green" />
+        <Metric label="Grouped alerts" value={groupedAlerts} detail="prediction records assigned to clusters" />
+        <Metric label="Alert reduction" value={summary?.alertReduction ?? "-"} detail="from prediction grouping script" tone="amber" />
         <Metric label="Affected wards" value={affectedWards.size} detail="distinct wards in grouped incidents" tone="red" />
       </div>
 
@@ -1405,7 +1439,7 @@ function AlertGroupingView({
         <div className="panel-heading">
           <div>
             <h2>Alert grouping incidents</h2>
-            <span>{message || "Read-only output from /incidents using precomputed DBSCAN clusters"}</span>
+            <span>{message || "Read-only output from /incidents using grouped prediction records"}</span>
           </div>
           <div className="download-row">
             <button className="grouping-refresh-button" onClick={onRefresh} disabled={refreshing} type="button">
@@ -1419,46 +1453,117 @@ function AlertGroupingView({
         </div>
         {incidents.length ? (
           <div className="history-stack">
-            {incidents.slice(0, 5).map((incident) => (
-              <article className="history-card" key={incident.incident_id ?? `${incident.group_id}-${incident.start_timestamp}`}>
-                <div>
-                  <span className={severityClass(String(incident.incident_priority ?? "LOW"))}>{String(incident.incident_priority ?? "LOW")}</span>
-                  <span className="badge low">{String(incident.alert_count ?? 0)} alerts</span>
-                </div>
-                <strong>{incident.incident_id ?? `Incident ${incident.group_id ?? "-"}`}</strong>
-                <p>{incident.attack_types ?? "Grouped attack alerts clustered by timestamp, source IP, attack type, and ward."}</p>
-                <div className="history-detail-grid">
-                  <div className="history-detail-item">
-                    <span>Wards</span>
-                    <b>{detailValue(incident.wards_affected)}</b>
+            {categoryGroups.map((section) => {
+              const sectionAlerts = section.incidents.reduce((total, incident) => total + Number(incident.alert_count ?? 0), 0);
+              const sectionWards = new Set(
+                section.incidents.flatMap((incident) =>
+                  String(incident.wards_affected ?? "")
+                    .split(",")
+                    .map((ward) => ward.trim())
+                    .filter(Boolean)
+                )
+              );
+              const sectionDevices = new Set(
+                section.incidents.flatMap((incident) =>
+                  String(incident.devices_affected ?? "")
+                    .split(",")
+                    .map((device) => device.trim())
+                    .filter(Boolean)
+                )
+              );
+              const sectionMultiAlertGroups = section.incidents.filter((incident) => Number(incident.alert_count ?? 0) > 1).length;
+              return (
+                <article className={`history-card category-shell category-${section.category}`} key={section.category}>
+                  <div>
+                    <span className={severityClass(section.tone.toUpperCase())}>{section.label}</span>
+                    <span className="badge low">{section.incidents.length} incidents</span>
                   </div>
-                  <div className="history-detail-item">
-                    <span>Devices</span>
-                    <b>{detailValue(incident.devices_affected)}</b>
+                  <strong>{section.label} grouping</strong>
+                  <p>{sectionAlerts} prediction records grouped under {section.label.toLowerCase()} severity/category.</p>
+                  <div className="history-detail-grid">
+                    <div className="history-detail-item">
+                      <span>Category</span>
+                      <b>{section.label}</b>
+                    </div>
+                    <div className="history-detail-item">
+                      <span>Incident count</span>
+                      <b>{section.incidents.length}</b>
+                    </div>
+                    <div className="history-detail-item">
+                      <span>Total alerts</span>
+                      <b>{sectionAlerts}</b>
+                    </div>
+                    <div className="history-detail-item">
+                      <span>Multi-alert groups</span>
+                      <b>{sectionMultiAlertGroups}</b>
+                    </div>
+                    <div className="history-detail-item">
+                      <span>Wards</span>
+                      <b>{sectionWards.size}</b>
+                    </div>
+                    <div className="history-detail-item">
+                      <span>Devices</span>
+                      <b>{sectionDevices.size}</b>
+                    </div>
                   </div>
-                  <div className="history-detail-item">
-                    <span>Source IPs</span>
-                    <b>{detailValue(incident.src_ips)}</b>
-                  </div>
-                  <div className="history-detail-item">
-                    <span>Start</span>
-                    <b>{displayValue(incident, "start_timestamp")}</b>
-                  </div>
-                  <div className="history-detail-item">
-                    <span>End</span>
-                    <b>{displayValue(incident, "end_timestamp")}</b>
-                  </div>
-                  <div className="history-detail-item">
-                    <span>Life support</span>
-                    <b>{booleanValue(incident.life_support_involved) ? "Yes" : "No"}</b>
-                  </div>
-                </div>
-              </article>
-            ))}
+                  {section.incidents.length ? (
+                    <>
+                      <div className="history-stack" style={{ marginTop: 16 }}>
+                        {section.incidents.slice(0, 3).map((incident) => (
+                          <article className={`history-card latest category-incident category-${section.category}`} key={incident.incident_id ?? `${incident.group_id}-${incident.start_timestamp}`}>
+                            <div>
+                              <span className={severityClass(String(incident.incident_priority ?? "LOW"))}>{String(incident.incident_priority ?? "LOW")}</span>
+                              <span className="badge low">{String(incident.alert_count ?? 0)} alerts</span>
+                            </div>
+                            <strong>{incident.incident_id ?? `Incident ${incident.group_id ?? "-"}`}</strong>
+                            <p>{incident.attack_types ?? "Grouped prediction records clustered by category, device, ward, and time window."}</p>
+                            <div className="history-detail-grid">
+                              <div className="history-detail-item">
+                                <span>Wards</span>
+                                <b>{detailValue(incident.wards_affected)}</b>
+                              </div>
+                              <div className="history-detail-item">
+                                <span>Devices</span>
+                                <b>{detailValue(incident.devices_affected)}</b>
+                              </div>
+                              <div className="history-detail-item">
+                                <span>Source IPs</span>
+                                <b>{detailValue(incident.src_ips)}</b>
+                              </div>
+                              <div className="history-detail-item">
+                                <span>Start</span>
+                                <b>{displayValue(incident, "start_timestamp")}</b>
+                              </div>
+                              <div className="history-detail-item">
+                                <span>End</span>
+                                <b>{displayValue(incident, "end_timestamp")}</b>
+                              </div>
+                              <div className="history-detail-item">
+                                <span>Life support</span>
+                                <b>{booleanValue(incident.life_support_involved) ? "Yes" : "No"}</b>
+                              </div>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                      {section.incidents.length > 3 && (
+                        <div className="empty-state" style={{ marginTop: 12 }}>
+                          + {section.incidents.length - 3} more incidents in {section.label.toLowerCase()}.
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="empty-state" style={{ marginTop: 16 }}>
+                      No grouped incidents are currently assigned to {section.label.toLowerCase()}.
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="empty-state">
-            No grouped incidents are available yet. Run the alert grouping script to refresh <code>grouped_incidents.csv</code> and then reload this page.
+            No grouped incidents are available yet. Run the alert grouping refresh to rebuild <code>grouped_incidents.csv</code> from stored predictions and then reload this page.
           </div>
         )}
       </section>
@@ -1466,7 +1571,7 @@ function AlertGroupingView({
       <DataTable
         title="Grouped incident table"
         items={incidents}
-        columns={["incident_id", "alert_count", "incident_priority", "attack_types", "wards_affected", "devices_affected", "src_ips", "start_timestamp", "end_timestamp"]}
+        columns={["incident_id", "group_category", "alert_count", "incident_priority", "attack_types", "wards_affected", "devices_affected", "src_ips", "start_timestamp", "end_timestamp"]}
       />
     </section>
   );

@@ -22,16 +22,19 @@ DEFAULT_ALERT_MODULE_ROOT = COMPONENT_ROOT
 
 
 def _find_mongo_uri_file() -> str:
-    candidates = [
-        Path.cwd() / "mongoURI.txt",
-        Path.cwd().parent / "mongoURI.txt",
-        WORKSPACE_ROOT / "mongoURI.txt",
-        COMPONENT_ROOT.parent / "Ukasha Research" / "mongoURI.txt",
-        Path(__file__).resolve().parents[3] / "mongoURI.txt",
-    ]
-    for path in candidates:
-        if path.exists():
-            return path.read_text(encoding="utf-8").strip()
+    search_roots = []
+    current = Path.cwd().resolve()
+    search_roots.extend([current, *current.parents])
+    module_root = Path(__file__).resolve()
+    search_roots.extend([module_root.parent, *module_root.parents])
+    seen = set()
+    for root in search_roots:
+        if root in seen:
+            continue
+        seen.add(root)
+        candidate = root / "mongoURI.txt"
+        if candidate.exists():
+            return candidate.read_text(encoding="utf-8").strip()
     return ""
 
 

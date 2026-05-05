@@ -140,6 +140,7 @@ export type PredictionRecord = TelemetryItem & {
 export type AlertIncidentRecord = TelemetryItem & {
   incident_id?: string;
   group_id?: number;
+  group_category?: string;
   alert_count?: number;
   attack_types?: string;
   wards_affected?: string;
@@ -148,6 +149,10 @@ export type AlertIncidentRecord = TelemetryItem & {
   max_priority?: string;
   incident_priority?: string;
   life_support_involved?: boolean | string;
+  predicted_attack_count?: number;
+  normal_count?: number;
+  critical_count?: number;
+  high_count?: number;
   start_timestamp?: string | number;
   end_timestamp?: string | number;
 };

@@ -570,16 +570,21 @@ def dashboard_summary():
         attack_logs = sensor_repo.attack_count()
         responses = response_repo.count()
         devices = sensor_repo.distinct_devices()
+        prediction_total = _prediction_repo().count()
         severity_counts = _prediction_repo().priority_counts()
     else:
         data = _fallback_telemetry(5000)
         total_logs = len(data)
         attack_logs = len([row for row in data if row.get("is_attack") or row.get("attack_type") != "normal"])
         devices = sorted({str(row.get("device_id")) for row in data if row.get("device_id")})
+        prediction_total = 0
 
     grouped = read_csv_records(PROCESSED_DIR / "grouped_incidents.csv", limit=1000)
     training_summary = read_text(RESULTS_DIR / "03_model_training_summary.txt")
     grouping_summary = read_text(RESULTS_DIR / "04_alert_grouping_summary.txt")
+    alert_reduction = "available"
+    if mongo and prediction_total > 0:
+        alert_reduction = f"{(1 - (len(grouped) / prediction_total)) * 100:.1f}%"
     return {
         "mode": "mongodb" if mongo else "mock",
         "totalLogs": total_logs,
@@ -588,7 +593,7 @@ def dashboard_summary():
         "activeDevices": len(devices),
         "incidentGroups": len(grouped),
         "modelAccuracy": "100.00%" if "100.00%" in training_summary else "available",
-        "alertReduction": "94.8%" if "94.8%" in grouping_summary else "available",
+        "alertReduction": alert_reduction,
         "severityCounts": severity_counts if mongo else _severity_counts(grouped),
         "devices": devices[:20],
     }
