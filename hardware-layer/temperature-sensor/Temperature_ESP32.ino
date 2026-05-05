@@ -5,11 +5,11 @@
 #include <ArduinoJson.h>
 
 // --- 1. WI-FI CONFIGURATION ---
-const char* ssid     = "Koshi";
-const char* password = "123454321";
+const char* ssid     = "Firaz";
+const char* password = "poiuytrew";
 
 // --- MQTT CONFIGURATION ---
-const char* mqtt_server = "10.86.251.69";
+const char* mqtt_server = "broker.hivemq.com";
 const int mqtt_port = 1883;
 const char* telemetry_topic = "hospital/iomt/temperature";
 
