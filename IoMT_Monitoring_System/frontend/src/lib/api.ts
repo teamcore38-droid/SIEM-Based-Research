@@ -137,6 +137,21 @@ export type PredictionRecord = TelemetryItem & {
   device_state?: string;
 };
 
+export type AlertIncidentRecord = TelemetryItem & {
+  incident_id?: string;
+  group_id?: number;
+  alert_count?: number;
+  attack_types?: string;
+  wards_affected?: string;
+  devices_affected?: string;
+  src_ips?: string;
+  max_priority?: string;
+  incident_priority?: string;
+  life_support_involved?: boolean | string;
+  start_timestamp?: string | number;
+  end_timestamp?: string | number;
+};
+
 export type ReportPayload = {
   generated_at: string;
   total_logs: number;
@@ -181,7 +196,7 @@ export const api = {
   telemetry: (limit = 30) => request<{ mode: string; items: TelemetryItem[] }>(`/telemetry?limit=${limit}`),
   sensors: () => request<{ count: number; items: SensorProfile[] }>("/sensors"),
   logs: (limit = 60) => request<{ mode: string; items: TelemetryItem[] }>(`/logs?limit=${limit}`),
-  incidents: (limit = 40) => request<{ mode: string; items: TelemetryItem[] }>(`/incidents?limit=${limit}`),
+  incidents: (limit = 40) => request<{ mode: string; items: AlertIncidentRecord[] }>(`/incidents?limit=${limit}`),
   responses: (limit = 40) => request<{ mode: string; items: TelemetryItem[] }>(`/responses?limit=${limit}`),
   quarantine: (limit = 40) => request<{ mode: string; items: TelemetryItem[] }>(`/quarantine?limit=${limit}`),
   deviceStates: (limit = 100) => request<{ mode: string; items: TelemetryItem[] }>(`/devices/states?limit=${limit}`),

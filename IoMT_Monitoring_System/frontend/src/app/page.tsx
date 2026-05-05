@@ -26,7 +26,7 @@ import {
   StopCircle,
   Table2
 } from "lucide-react";
-import { AnalyzeResult, PredictionRecord, ReportPayload, SensorProfile, SimulationConfig, SimulatorStatus, Summary, TelemetryItem, TickResult, api } from "@/lib/api";
+import { AlertIncidentRecord, AnalyzeResult, PredictionRecord, ReportPayload, SensorProfile, SimulationConfig, SimulatorStatus, Summary, TelemetryItem, TickResult, api } from "@/lib/api";
 
 const SYSTEM_NAME = "MedGuard X";
 const SYSTEM_TAGLINE = "Security Operations";
@@ -40,6 +40,7 @@ const views = [
   { id: "telemetry", label: "Telemetry", icon: Stethoscope },
   { id: "logs", label: "MongoDB Logs", icon: Database },
   { id: "priority", label: "AI Priority", icon: Gauge },
+  { id: "alert-grouping", label: "Alert Grouping", icon: Table2 },
   { id: "attack", label: "Attack Prediction", icon: ShieldAlert },
   { id: "correlation", label: "Correlation", icon: Network },
   { id: "response", label: "Response", icon: Bell },
@@ -188,7 +189,7 @@ export default function Home() {
   const [health, setHealth] = useState<{ mongo: boolean; mode: string } | null>(null);
   const [telemetry, setTelemetry] = useState<TelemetryItem[]>([]);
   const [logs, setLogs] = useState<TelemetryItem[]>([]);
-  const [incidents, setIncidents] = useState<TelemetryItem[]>([]);
+  const [incidents, setIncidents] = useState<AlertIncidentRecord[]>([]);
   const [responses, setResponses] = useState<TelemetryItem[]>([]);
   const [quarantined, setQuarantined] = useState<TelemetryItem[]>([]);
   const [deviceStates, setDeviceStates] = useState<TelemetryItem[]>([]);
@@ -789,6 +790,7 @@ export default function Home() {
         {active === "telemetry" && <DataTable title="Live telemetry" items={telemetry} columns={["timestamp", "device_id", "device_type", "ward", "heart_rate_bpm_pulse", "temperature_celsius", "attack_type", "device_state", "network_status"]} />}
         {active === "logs" && <DataTable title="MongoDB sensor_logs collection" items={logs} columns={["timestamp", "device_id", "device_type", "ward", "protocol", "src_ip", "dst_port", "attack_type"]} />}
         {active === "priority" && <PriorityView latest={latest} summary={summary} predictions={predictions} />}
+        {active === "alert-grouping" && <AlertGroupingView summary={summary} incidents={incidents} />}
         {active === "attack" && <AttackView latest={latest} predictions={predictions} />}
         {active === "correlation" && (
           <section className="view-stack">
@@ -1320,6 +1322,96 @@ function PriorityView({ latest, summary, predictions }: { latest?: TickResult; s
         ))}
       </div>
       <PriorityHistory predictions={predictions} latest={latest} />
+    </section>
+  );
+}
+
+function AlertGroupingView({
+  summary,
+  incidents
+}: {
+  summary: Summary | null;
+  incidents: AlertIncidentRecord[];
+}) {
+  const groupedAlerts = incidents.reduce((total, incident) => total + Number(incident.alert_count ?? 0), 0);
+  const multiAlertGroups = incidents.filter((incident) => Number(incident.alert_count ?? 0) > 1).length;
+  const affectedWards = new Set(
+    incidents.flatMap((incident) =>
+      String(incident.wards_affected ?? "")
+        .split(",")
+        .map((ward) => ward.trim())
+        .filter(Boolean)
+    )
+  );
+
+  return (
+    <section className="view-stack">
+      <div className="metric-grid">
+        <Metric label="Incident groups" value={summary?.incidentGroups ?? incidents.length} detail="precomputed DBSCAN output" tone="green" />
+        <Metric label="Grouped alerts" value={groupedAlerts} detail="alerts assigned to clusters" />
+        <Metric label="Alert reduction" value={summary?.alertReduction ?? "-"} detail="from grouping script" tone="amber" />
+        <Metric label="Affected wards" value={affectedWards.size} detail="distinct wards in grouped incidents" tone="red" />
+      </div>
+
+      <section className="panel wide">
+        <div className="panel-heading">
+          <div>
+            <h2>Alert grouping incidents</h2>
+            <span>Read-only output from /incidents using precomputed DBSCAN clusters</span>
+          </div>
+          <span>{multiAlertGroups} multi-alert clusters</span>
+        </div>
+        {incidents.length ? (
+          <div className="history-stack">
+            {incidents.slice(0, 5).map((incident) => (
+              <article className="history-card" key={incident.incident_id ?? `${incident.group_id}-${incident.start_timestamp}`}>
+                <div>
+                  <span className={severityClass(String(incident.incident_priority ?? "LOW"))}>{String(incident.incident_priority ?? "LOW")}</span>
+                  <span className="badge low">{String(incident.alert_count ?? 0)} alerts</span>
+                </div>
+                <strong>{incident.incident_id ?? `Incident ${incident.group_id ?? "-"}`}</strong>
+                <p>{incident.attack_types ?? "Grouped attack alerts clustered by timestamp, source IP, attack type, and ward."}</p>
+                <div className="history-detail-grid">
+                  <div className="history-detail-item">
+                    <span>Wards</span>
+                    <b>{detailValue(incident.wards_affected)}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Devices</span>
+                    <b>{detailValue(incident.devices_affected)}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Source IPs</span>
+                    <b>{detailValue(incident.src_ips)}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Start</span>
+                    <b>{displayValue(incident, "start_timestamp")}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>End</span>
+                    <b>{displayValue(incident, "end_timestamp")}</b>
+                  </div>
+                  <div className="history-detail-item">
+                    <span>Life support</span>
+                    <b>{booleanValue(incident.life_support_involved) ? "Yes" : "No"}</b>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            No grouped incidents are available yet. Run the alert grouping script to refresh <code>grouped_incidents.csv</code> and then reload this page.
+          </div>
+        )}
+      </section>
+
+      <DataTable
+        title="Grouped incident table"
+        items={incidents}
+        columns={["incident_id", "alert_count", "incident_priority", "attack_types", "wards_affected", "devices_affected", "src_ips", "start_timestamp", "end_timestamp"]}
+      />
     </section>
   );
 }
