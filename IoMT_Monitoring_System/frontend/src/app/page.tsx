@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import jsPDF from "jspdf";
 import Image from "next/image";
 import {
@@ -33,6 +33,7 @@ const SYSTEM_TAGLINE = "Security Operations";
 const SYSTEM_DESCRIPTION = "Real-time security monitoring for connected medical devices.";
 const LOGIN_LOGO_SRC = "/medguard-x-logo.jpeg";
 const SIDEBAR_LOGO_SRC = "/medguard-x-logo-icon.png";
+const LIVE_REFRESH_INTERVAL_MS = 4500;
 
 const views = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3 },
@@ -52,11 +53,34 @@ type ViewId = (typeof views)[number]["id"];
 
 const severityOrder = ["CRITICAL", "HIGH", "MEDIUM", "LOW"] as const;
 const incidentCategoryOrder = ["critical", "high", "attack", "normal"] as const;
+const columnLabels: Record<string, string> = {
+  heart_rate_bpm_pulse: "Heart rate (BPM)",
+  temperature_celsius: "Temperature (Celsius)",
+};
 
 function value(item: TelemetryItem, key: string, fallback = "-") {
   const result = item[key];
   if (result === null || result === undefined || result === "") return fallback;
   return String(result);
+}
+
+function columnLabel(column: string) {
+  return columnLabels[column] ?? column.replaceAll("_", " ");
+}
+
+function resolveTableValue(item: TelemetryItem, key: string) {
+  if (key === "heart_rate_bpm_pulse") {
+    return item.heart_rate_bpm_pulse ?? item.heart_rate_bpm ?? item.bpm;
+  }
+  return item[key];
+}
+
+function formatHeartRateValue(raw: unknown, fallback = "-") {
+  if (raw === null || raw === undefined || raw === "") return fallback;
+  const text = String(raw).trim();
+  if (text === "0" || Number(raw) === 0) return "0-9 bpm (PHI reduced)";
+  if (/bpm/i.test(text)) return text;
+  return `${text} bpm`;
 }
 
 function isTimestampKey(key: string) {
@@ -91,7 +115,8 @@ function formatLocalDateTime(raw: unknown, fallback = "-") {
 
 function displayValue(item: TelemetryItem, key: string, fallback = "-") {
   if (key === "network_status") return networkStatus(item).label;
-  const result = item[key];
+  const result = resolveTableValue(item, key);
+  if (key === "heart_rate_bpm_pulse") return formatHeartRateValue(result, fallback);
   if (isTimestampKey(key)) return formatLocalDateTime(result, fallback);
   if (result === null || result === undefined || result === "") return fallback;
   return String(result);
@@ -250,7 +275,7 @@ export default function Home() {
     change_origin: responseOrigin(item),
   }));
 
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setError("");
     try {
       const [healthData, summaryData, telemetryData, logData, incidentData, responseData, quarantineData, stateData, predictionData, sensorData, simulatorData, simulatorLatest, simulationConfigData] =
@@ -259,7 +284,7 @@ export default function Home() {
           api.summary(),
           api.telemetry(40),
           api.logs(70),
-          api.incidents(50),
+          api.incidents(0),
           api.responses(50),
           api.quarantine(50),
           api.deviceStates(100),
@@ -296,7 +321,41 @@ export default function Home() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to reach backend API");
     }
-  };
+  }, []);
+
+  const refreshLiveData = useCallback(async () => {
+    setError("");
+    try {
+      const [healthData, summaryData, telemetryData, logData, responseData, quarantineData, stateData, predictionData, simulatorData, simulationConfigData] =
+        await Promise.all([
+          api.health(),
+          api.summary(),
+          api.telemetry(40),
+          api.logs(70),
+          api.responses(50),
+          api.quarantine(50),
+          api.deviceStates(100),
+          api.predictions(10),
+          api.simulatorStatus(),
+          api.simulationConfig()
+        ]);
+      setHealth(healthData);
+      setSummary(summaryData);
+      setTelemetry(telemetryData.items);
+      setLogs(logData.items);
+      setResponses(responseData.items);
+      setQuarantined(quarantineData.items);
+      setDeviceStates(stateData.items);
+      setPredictions(predictionData.items);
+      setSimulatorStatus(simulatorData);
+      setSimulationConfig(simulationConfigData);
+      if (telemetryData.items[0]?.device_id) {
+        setSelectedDevice((current) => current || String(telemetryData.items[0].device_id));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to refresh live telemetry");
+    }
+  }, []);
 
   const refreshAlertGrouping = async () => {
     setGroupingRefreshing(true);
@@ -362,15 +421,16 @@ export default function Home() {
 
   useEffect(() => {
     void loadAll();
-  }, []);
+  }, [loadAll]);
 
   useEffect(() => {
-    if (!simulatorRunning) return;
+    if (!authenticated) return;
+    void refreshLiveData();
     const id = window.setInterval(() => {
-      void loadAll();
-    }, 4500);
+      void refreshLiveData();
+    }, LIVE_REFRESH_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [simulatorRunning]);
+  }, [authenticated, refreshLiveData]);
 
   const flow = useMemo(
     () => [
@@ -2000,7 +2060,7 @@ function DataTable({ title, items, columns }: { title: string; items: TelemetryI
         <table>
           <thead>
             <tr>
-              {columns.map((column) => <th key={column}>{column.replaceAll("_", " ")}</th>)}
+              {columns.map((column) => <th key={column}>{columnLabel(column)}</th>)}
             </tr>
           </thead>
           <tbody>

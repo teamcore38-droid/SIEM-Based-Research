@@ -978,16 +978,18 @@ def response_action(payload: ResponseActionRequest):
             metadata=command_payload,
         )
         return {"mode": "mongodb", "issued": True, "command": json_safe(command.__dict__), "state_update": json_safe(state_update)}
+    controller = DeviceController()
+    command = controller.issue(
+        payload.device_id,
+        payload.action,
+        metadata=command_payload,
+        requested_by=payload.requested_by,
+    )
     return {
-        "mode": "mock",
-        "issued": True,
-        "command": {
-            "command_id": "MOCK-COMMAND",
-            "device_id": payload.device_id,
-            "action": payload.action,
-            "status": "simulated",
-            "metadata": command_payload,
-        },
+        "mode": "control_only",
+        "issued": command.status != "failed",
+        "command": json_safe(command.__dict__),
+        "state_update": None,
     }
 
 
